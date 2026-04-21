@@ -1,0 +1,63 @@
+User-agent: *
+Disallow: /cgi-bin
+Disallow: /wp-admin/
+Disallow: /wp-includes/
+Disallow: /wp-login.php
+Disallow: /wp-register.php
+Disallow: /xmlrpc.php
+Disallow: /readme.html
+Disallow: /license.txt
+Disallow: /*?s=
+Disallow: /*&s=
+Disallow: /search
+Disallow: /author/
+Disallow: /*?attachment_id=
+Disallow: /*/attachment/
+Disallow: /*/feed
+Disallow: /*/rss
+Disallow: /*/embed
+Disallow: /checkout/
+Disallow: /cart/
+Disallow: /compare/
+Disallow: /lichnyj-kabinet/
+Disallow: /wp-json/
+Allow: /wp-content/uploads/
+Allow: /wp-content/plugins/*.js
+Allow: /wp-content/plugins/*.css
+Allow: /wp-content/themes/*.js
+Allow: /wp-content/themes/*.css
+Allow: /wp-content/themes/*.png
+Allow: /wp-content/themes/*.jpg
+Allow: /wp-content/themes/*.svg
+
+Host: https://53flowers.com
+
+# AI Search Bots — Allow
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: GPTBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: Claude-SearchBot
+Allow: /
+
+User-agent: Applebot-Extended
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+# AI Crawlers — Disallow
+User-agent: Bytespider
+Disallow: /
+
+User-agent: CCBot
+Disallow: /
+Sitemap: https://53flowers.com/sitemap_index.xml

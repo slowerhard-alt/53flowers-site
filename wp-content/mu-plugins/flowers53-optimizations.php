@@ -1,0 +1,95 @@
+<?php
+/**
+ * Plugin Name: 53flowers Optimizations
+ * Description: Security hardening + PageSpeed optimizations for 53flowers.com
+ * Version: 1.0.0
+ */
+
+defined('ABSPATH') || exit;
+
+// =============================================================================
+// SECURITY
+// =============================================================================
+
+// Block REST API user enumeration
+add_filter('rest_endpoints', function($endpoints) {
+    if (isset($endpoints['/wp/v2/users'])) {
+        unset($endpoints['/wp/v2/users']);
+    }
+    if (isset($endpoints['/wp/v2/users/(?P<id>[\d]+)'])) {
+        unset($endpoints['/wp/v2/users/(?P<id>[\d]+)']);
+    }
+    return $endpoints;
+});
+
+// Block author archives (user enumeration via ?author=N)
+add_action('template_redirect', function() {
+    if (is_author()) {
+        wp_redirect(home_url(), 301);
+        exit;
+    }
+});
+
+// Remove WP version from head and feeds
+remove_action('wp_head', 'wp_generator');
+add_filter('the_generator', '__return_empty_string');
+
+// =============================================================================
+// PAGESPEED: DEFER SCRIPTS
+// =============================================================================
+
+// Add defer to non-critical scripts loaded via wp_enqueue_script
+add_filter('script_loader_tag', function($tag, $handle) {
+    // Don't defer jQuery core — other scripts depend on it synchronously
+    $no_defer = ['jquery-core', 'jquery-migrate', 'jquery'];
+    if (in_array($handle, $no_defer)) return $tag;
+    if (strpos($tag, 'defer') !== false || strpos($tag, 'async') !== false) return $tag;
+    if (strpos($tag, ' src=') === false) return $tag;
+    return str_replace(' src=', ' defer src=', $tag);
+}, 10, 2);
+
+// =============================================================================
+// PAGESPEED: REMOVE UNNECESSARY FRONTEND SCRIPTS
+// =============================================================================
+
+add_action('wp_enqueue_scripts', function() {
+    // YML for Yandex Market — admin/feed only, not needed on frontend
+    wp_dequeue_script('y4ymp-public');
+    wp_dequeue_style('y4ymp-public');
+    wp_deregister_script('y4ymp-public');
+    wp_deregister_style('y4ymp-public');
+    // Pro version
+    wp_dequeue_script('yml-for-yandex-market-pro');
+    wp_dequeue_style('yml-for-yandex-market-pro');
+    wp_deregister_script('yml-for-yandex-market-pro');
+    wp_deregister_style('yml-for-yandex-market-pro');
+}, 100);
+
+// =============================================================================
+// PAGESPEED: PRELOAD LCP IMAGE ON HOMEPAGE
+// =============================================================================
+
+add_action('wp_head', function() {
+    if (is_front_page()) {
+        echo '<link rel="preload" as="image" href="/wp-content/uploads/2015/06/slide_1-1.webp" fetchpriority="high">' . "\n";
+    }
+}, 1);
+
+// =============================================================================
+// PAGESPEED: DNS PREFETCH FOR EXTERNAL RESOURCES
+// =============================================================================
+
+add_action('wp_head', function() {
+    echo '<link rel="dns-prefetch" href="//mc.yandex.ru">' . "\n";
+    echo '<link rel="dns-prefetch" href="//flowers-club.bitrix24.ru">' . "\n";
+}, 1);
+
+// =============================================================================
+// SEO: H1 ON HOMEPAGE
+// =============================================================================
+
+add_action('wp_body_open', function() {
+    if (is_front_page()) {
+        echo '<h1 style="font-size:28px;text-align:center;margin:20px 0 10px;">Доставка цветов в Великом Новгороде — Цветы.ру</h1>' . "\n";
+    }
+});

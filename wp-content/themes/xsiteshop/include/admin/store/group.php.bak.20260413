@@ -1,0 +1,290 @@
+<script> xs_active_menu("admin.php?page=store&section=group") </script>
+<style>#screen-meta ~ .notice{display:none!important}</style>
+<div class="store_report_page">
+	<div class="store_report_page__fix"><?
+	
+		xs_get_message();
+		
+		?><form class="xs_flex xs_top xs_wrap xs_filter only_search" id="filter" method="get" action="">
+			<div class="dates_block"><?
+			
+				?><label>
+					<input type="text" form="filter" name="filter[search]" value="<?=$xs_filter['search']?>" placeholder="Поиск" />
+				</label><?
+				
+				?><label class="xs_submit">
+					<input type="submit" form="filter" value="Искать" class="button-primary" />
+				</label><?
+				
+				if($setFilter)
+				{
+					?><label class="xs_submit"><a href="/wp-admin/admin.php?page=<?=$_GET['page']?>&section=<?=$_GET['section']?>&orderby=<?=$orderby?>&order=<?=$order?>">× Сбросить фильтр</a></label><?
+				}
+				
+				?><input type="hidden" form="filter" name="filter[category_id]" value="<?=$xs_filter['category_id'] ?>" />
+				<input type="hidden" form="filter" name="page" value="<?=$_GET['page']?>" />
+				<input type="hidden" form="filter" name="section" value="<?=$_GET['section']?>" />
+				<input type="hidden" form="filter" name="orderby" value="<?=$orderby?>" />
+				<input type="hidden" form="filter" name="order" value="<?=$order?>" />
+				<input type="hidden" form="filter" name="paged" value="1" />
+			</div>
+			<div class="xs_filter__buttons">
+				<div data-modal="group-add" class="button">Создать группу</div>
+				<a href="/moysklad/update_all.php?is_admin=y" target="_blank" class="button">Обновить цены с МС</a>
+				<!--a href="https://cvetyru-vn.ru/wp-content/plugins/xs_store/load/update_price.php" target="_blank" class="button">Обновить цены на cvetyru-vn.ru</a-->
+				<a href="<?=setUrl($big_data['current_url'], 'action', $xs_data->action == 'view' ? 'edit' : 'view') ?>" class="button"><?=$xs_data->action == 'view' ? 'Режим редактирования' : 'Режим просмотра' ?></a>
+				<a href="#" onclick="jQuery('.xs_filter__buttons').toggleClass('xs_filter__buttons--cols'); return false" class="button">Столбцы</a>
+				
+				<div class="xs_filter__cols">
+					<div class="xs_filter__cols-item xs_filter__cols-item--all"><a href="#" onclick="jQuery('.xs_filter__cols').find('input[type=checkbox]').prop('checked', true);return false">Выбрать все</a></div>
+					<div class="xs_filter__cols-items">
+						<label class="xs_filter__cols-item"><input form="set_rows" type="checkbox" name="row[sort]" value="y"<?=is_row('sort') ? ' checked' : '' ?> /> Сорт</label>
+						<label class="xs_filter__cols-item"><input form="set_rows" type="checkbox" name="row[name]" value="y"<?=is_row('name') ? ' checked' : '' ?> /> Название</label>
+						<label class="xs_filter__cols-item"><input form="set_rows" type="checkbox" name="row[name_for_user]" value="y"<?=is_row('name_for_user') ? ' checked' : '' ?> /> Название для покупателей</label>
+						<label class="xs_filter__cols-item"><input form="set_rows" type="checkbox" name="row[category_id]" value="y"<?=is_row('category_id') ? ' checked' : '' ?> /> Категория</label>
+						<label class="xs_filter__cols-item"><input form="set_rows" type="checkbox" name="row[purchase_price]" value="y"<?=is_row('purchase_price') ? ' checked' : '' ?> /> Закуп цена</label>
+						<label class="xs_filter__cols-item"><input form="set_rows" type="checkbox" name="row[original_price]" value="y"<?=is_row('original_price') ? ' checked' : '' ?> /> Себес</label>
+						<label class="xs_filter__cols-item"><input form="set_rows" type="checkbox" name="row[ms_quantity]" value="y"<?=is_row('ms_quantity') ? ' checked' : '' ?> /> Остаток</label>
+						<label class="xs_filter__cols-item"><input form="set_rows" type="checkbox" name="row[days]" value="y"<?=is_row('days') ? ' checked' : '' ?> /> Дни</label>
+						<label class="xs_filter__cols-item"><input form="set_rows" type="checkbox" name="row[coefficient]" value="y"<?=is_row('coefficient') ? ' checked' : '' ?> /> Коэффициент</label>
+						<label class="xs_filter__cols-item"><input form="set_rows" type="checkbox" name="row[group]" value="y"<?=is_row('group') ? ' checked' : '' ?> /> Группа</label>
+						
+						<label class="xs_filter__cols-item"><input form="set_rows" type="checkbox" name="row[sale_type]" value="y"<?=is_row('sale_type') ? ' checked' : '' ?> /> Тип скидки</label>
+						<label class="xs_filter__cols-item"><input form="set_rows" type="checkbox" name="row[sale_percent]" value="y"<?=is_row('sale_percent') ? ' checked' : '' ?> /> Пр скидки</label>
+						<label class="xs_filter__cols-item"><input form="set_rows" type="checkbox" name="row[sale_min_quantity]" value="y"<?=is_row('sale_min_quantity') ? ' checked' : '' ?> /> Мин. остаток для активации скидки</label>
+						<label class="xs_filter__cols-item"><input form="set_rows" type="checkbox" name="row[sale_min_days]" value="y"<?=is_row('sale_min_days') ? ' checked' : '' ?> /> Мин. дней для активации скидки</label>
+						
+						<label class="xs_filter__cols-item"><input form="set_rows" type="checkbox" name="row[forced_price]" value="y"<?=is_row('forced_price') ? ' checked' : '' ?> /> Приор цена</label>
+						<label class="xs_filter__cols-item"><input form="set_rows" type="checkbox" name="row[sale_forced_price]" value="y"<?=is_row('sale_forced_price') ? ' checked' : '' ?> /> Приоритетная цена без скидки</label>
+						<label class="xs_filter__cols-item"><input form="set_rows" type="checkbox" name="row[is_set_forced_price]" value="y"<?=is_row('is_set_forced_price') ? ' checked' : '' ?> /> Дни влияют на приоритетную цену</label>
+						<label class="xs_filter__cols-item"><input form="set_rows" type="checkbox" name="row[price]" value="y"<?=is_row('price') ? ' checked' : '' ?> /> Цена</label>
+						<label class="xs_filter__cols-item"><input form="set_rows" type="checkbox" name="row[sale_price]" value="y"<?=is_row('sale_price') ? ' checked' : '' ?> /> Цена без скидки</label>
+						<label class="xs_filter__cols-item"><input form="set_rows" type="checkbox" name="row[color]" value="y"<?=is_row('color') ? ' checked' : '' ?> /> Цвет фона в отчёте</label>
+						<label class="xs_filter__cols-item"><input form="set_rows" type="checkbox" name="row[show_in_product]" value="y"<?=is_row('show_in_product') ? ' checked' : '' ?> /> Отображать для покупателей в карточке товара</label>
+						<label class="xs_filter__cols-item"><input form="set_rows" type="checkbox" name="row[hide_quantity_in_product]" value="y"<?=is_row('hide_quantity_in_product') ? ' checked' : '' ?> /> Скрыть количество в карточке товара</label>
+						<label class="xs_filter__cols-item"><input form="set_rows" type="checkbox" name="row[is_fresh_delivery]" value="y"<?=is_row('is_fresh_delivery') ? ' checked' : '' ?> /> Учитывать для «свежая поставка»</label>
+						<label class="xs_filter__cols-item"><input form="set_rows" type="checkbox" name="row[favorite]" value="y"<?=is_row('favorite') ? ' checked' : '' ?> /> Избранное</label>
+						<label class="xs_filter__cols-item"><input form="set_rows" type="checkbox" name="row[ms_ids]" value="y"<?=is_row('ms_ids') ? ' checked' : '' ?> /> ID МС</label>
+						<label class="xs_filter__cols-item"><input form="set_rows" type="checkbox" name="row[ms_is_update_price]" value="y"<?=is_row('ms_is_update_price') ? ' checked' : '' ?> /> Обновлять себестоимость с МС</label>
+						<label class="xs_filter__cols-item"><input form="set_rows" type="checkbox" name="row[ms_is_update_days]" value="y"<?=is_row('ms_is_update_days') ? ' checked' : '' ?> /> Обновлять дни с МС</label>
+						<label class="xs_filter__cols-item"><input form="set_rows" type="checkbox" name="row[ms_quantity_for_days]" value="y"<?=is_row('ms_quantity_for_days') ? ' checked' : '' ?> /> Остаток, при котором перестают обновляться дни</label>
+						<label class="xs_filter__cols-item"><input form="set_rows" type="checkbox" name="row[ms_percent_outstock]" value="y"<?=is_row('ms_percent_outstock') ? ' checked' : '' ?> /> Процент, прибавляемый при нулевом остатке</label>
+						<label class="xs_filter__cols-item"><input form="set_rows" type="checkbox" name="row[ms_is_update_retail_price]" value="y"<?=is_row('ms_is_update_retail_price') ? ' checked' : '' ?> /> Обновлять розничную цену в МС</label>
+						<? 
+						
+						for($i = 0; $i < $big_data['store_competitors_count']; $i++)
+						{
+							$code = 'competitor_'.$i;
+							
+							?><label class="xs_filter__cols-item"><input form="set_rows" type="checkbox" name="row[<?=$code ?>]" value="y"<?=is_row($code) ? ' checked' : '' ?> /> <?=xs_get_option('xs_competitor_'.$i) ?></label><?
+						}
+					
+					?></div>
+					<input form="set_rows" class="button-primary" type="submit" name="set_rows" value="Применить" />
+				</div>
+			</div>
+		</form>
+		<form id="set_rows" method="post" action=""></form>
+	</div><?
+
+	if($xs_data->action == 'edit')
+	{
+		?><form action="" method="post"><?
+	}
+
+	?><div class="store_table__container">
+	<table class="wp-list-table store_table widefat striped xs_data_table xs_users xs_action_<?=$xs_data->action ?>">
+		<thead>
+			<tr><? 
+				
+				if(is_row('sort'))
+					get_order_th('Сорт', 'c.sort');
+				
+				if(is_row('name'))
+					get_order_th('Название', 'c.name');
+				
+				if(is_row('name_for_user'))
+				{
+					?><td>Название для покупателей</td><?
+				}
+				
+				if(is_row('category_id'))
+				{
+					?><td>Категория</td><?
+				}
+				
+				if(is_row('purchase_price'))
+				{
+					?><td>Закуп цена</td><?
+				}
+				
+				if(is_row('original_price'))
+				{
+					?><td>Себес</td><?
+				}
+				
+				if(is_row('ms_quantity'))
+				{
+					?><td>Остаток</td><?
+				}
+				
+				if(is_row('days'))
+				{
+					?><td>Дни</td><?
+				}
+				
+				if(is_row('coefficient'))
+				{
+					?><td><nobr>К-т</nobr></td><?
+				}
+				
+				if(is_row('group'))
+				{
+					?><td>Группа</td><?
+				}
+				
+				if(is_row('sale_type'))
+				{
+					?><td>Тип скидки</td><?
+				}
+				
+				if(is_row('sale_percent'))
+				{
+					?><td>Пр скидки</td><?
+				}
+				
+				if(is_row('sale_min_quantity'))
+				{
+					?><td>Мин. остаток для скидки</td><?
+				}
+				
+				if(is_row('sale_min_days'))
+				{
+					?><td>Мин. дней для скидки</td><?
+				}
+				
+				if(is_row('forced_price'))
+				{
+					?><td>Приор цена</td><?
+				}
+				
+				if(is_row('sale_forced_price'))
+				{
+					?><td>Приоритетная цена без скидки</td><?
+				}
+				
+				if(is_row('is_set_forced_price'))
+				{
+					?><td>Дни влияют на приоритетную цену</td><?
+				}
+				
+				if(is_row('price'))
+				{
+					?><td>Цена</td><?
+				}
+				
+				if(is_row('sale_price'))
+				{
+					?><td>Цена без скидки</td><?
+				}
+				
+				if(is_row('color'))
+				{
+					?><td>Цвет фона в отчёте</td><?
+				}
+				
+				if(is_row('show_in_product'))
+				{
+					?><td>Отображать для покупателей в карточке товара</td><?
+				}
+				
+				if(is_row('hide_quantity_in_product'))
+				{
+					?><td>Скрыть компонента в карточке товара</td><?
+				}
+				
+				if(is_row('is_fresh_delivery'))
+				{
+					?><td>Учитывать для «свежая поставка»</td><?
+				}
+				
+				if(is_row('favorite'))
+				{
+					?><td>Избранное</td><?
+				}
+				
+				if(is_row('ms_ids'))
+				{
+					?><td>ID МС</td><?
+				}
+				
+				if(is_row('ms_is_update_price'))
+				{
+					?><td>Обновлять себестоимость с МС</td><?
+				}
+				
+				if(is_row('ms_is_update_days'))
+				{
+					?><td>Обновлять дни с МС</td><?
+				}
+				
+				if(is_row('ms_quantity_for_days'))
+				{
+					?><td>Остаток, при котором перестают обновляться дни</td><?
+				}
+				
+				if(is_row('ms_percent_outstock'))
+				{
+					?><td>Процент, прибавляемый при нулевом остатке</td><?
+				}
+				
+				if(is_row('ms_is_update_retail_price'))
+				{
+					?><td>Обновлять розничную цену в МС</td><?
+				}
+				
+				for($i = 0; $i < $big_data['store_competitors_count']; $i++)
+				{
+					if(is_row('competitor_'.$i))
+					{
+						?><td><?=xs_get_option('xs_competitor_'.$i) ?></td><?
+					}
+				}
+				
+			?></tr>
+		</thead>
+		<tbody><? 
+		
+			foreach($xs_data->result as $v)
+			{ 
+				?><tr data-id="<?=$v->id ?>"<?=$xs_data->action == 'edit' ? ' class="is_edit"' : '' ?> data-type="group"><?
+				
+				$v->is_group = 'y';
+				
+				include('templates/row.php')
+				
+				?></tr><?
+			} 
+		
+		?></tbody>
+	</table>
+	</div><?
+
+	if($xs_data->action == 'edit')
+	{
+			?><div class="store_table_edit">
+				<input type="submit" value="Сохранить изменения" class="button-primary">
+				&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+				<label>
+					<input type="checkbox" value="y" name="is_send_telegram"> Отправить уведомление в TG
+				</label>
+				&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+				<label>
+					<input type="checkbox" value="y" name="is_send_bitrix"> Отправить уведомление в Б24
+				</label>
+			</div>
+			<input type="hidden" value="y" name="edit_components" />
+		</form><?
+	}
+
+?></div>

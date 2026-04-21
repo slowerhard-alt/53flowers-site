@@ -1,0 +1,3 @@
+<?php return ['Y4YMP_Metaboxes' => '/home/c/cvetyams/53flowers.com/public_html/wp-content/plugins/yml-for-yandex-market-pro/admin/class-y4ymp-metaboxes.php',
+'Y4YMP_Interface_Hoocked' => '/home/c/cvetyams/53flowers.com/public_html/wp-content/plugins/yml-for-yandex-market-pro/admin/class-y4ymp-interface-hoocked.php',
+'Y4YMP_Generation_Hoocked' => '/home/c/cvetyams/53flowers.com/public_html/wp-content/plugins/yml-for-yandex-market-pro/admin/class-y4ymp-generation-hoocked.php',];

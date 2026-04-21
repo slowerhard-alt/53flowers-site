@@ -1,0 +1,311 @@
+<?
+if(isset($_GET['ajax']) && $_GET['ajax'] == '1') {
+    // Will output only table container - handled below
+    define('XS_REPORT_AJAX', true);
+}
+?>
+<?php if(!defined('XS_REPORT_AJAX')): ?>
+<script> xs_active_menu("admin.php?page=store&section=report") </script>
+<style>#screen-meta ~ .notice{display:none!important}</style>
+<div class="store_report_page">
+	<div class="store_report_page__fix"><?
+
+		xs_get_message();
+
+		// Загружаем данные пресетов/колонок до формы — нужны в кнопках И в панелях ниже
+		$xs_current_rows  = get_user_meta($big_data['current_user']->ID, 'xs_rows', true);
+		$_user_presets    = isset($big_data['user_presets']) ? $big_data['user_presets'] : [];
+		$_all_columns     = isset($big_data['all_columns'])  ? $big_data['all_columns']  : [];
+		if(!is_array($xs_current_rows)) $xs_current_rows = [];
+
+		?><form class="xs_filter only_search" id="filter" method="get" action="">
+			<div class="xs_filter__buttons"><?
+
+				?><button type="button" class="button xs_search_toggle<?=!empty($xs_filter['search']) ? ' xs_search_toggle--active' : ''?>" id="xs_search_toggle">&#128269; Поиск</button>
+				<a href="/moysklad/update_all.php?is_admin=y" target="_blank" class="button">Обновить цены с МС</a>
+				<a href="/wp-admin/admin.php?page=xs_setting&tab=store" class="button">Настроить коэффициенты</a>
+				<a href="<?=setUrl($big_data['current_url'], 'action', $xs_data->action == 'view' ? 'edit' : 'view') ?>" class="button"><?=$xs_data->action == 'view' ? 'Режим редактирования' : 'Режим просмотра' ?></a>
+				<button type="button" class="button xs_columns_toggle" id="xs_columns_toggle">&#9776; Колонки</button>
+				<button type="button" class="button xs_preset_config_toggle" id="xs_preset_config_toggle">&#9881; Пресеты</button>
+				<span class="xs_toolbar_sep"></span><?
+
+				foreach($_user_presets as $preset_key => $preset_def) {
+					$preset_rows = $preset_def['rows'];
+					$is_active = !empty($preset_rows) && count($xs_current_rows) == count($preset_rows) && !array_diff($preset_rows, array_keys($xs_current_rows));
+					$preset_url = setUrl($big_data['current_url'], 'xs_preset', $preset_key);
+					?><a href="<?=esc_url($preset_url)?>" class="button xs_preset_btn<?=$is_active ? ' xs_preset_btn--active' : ''?>"><?=esc_html($preset_def['label'])?></a><?
+				}
+
+			?></div>
+			<div class="xs_search_wrap<?=!empty($xs_filter['search']) ? ' xs_search_wrap--open' : ''?>" id="xs_search_wrap">
+				<input type="text" form="filter" name="filter[search]" value="<?=$xs_filter['search']?>" placeholder="Поиск" id="xs_search_input" />
+				<input type="submit" form="filter" value="Искать" class="button-primary" />
+			</div>
+			<input type="hidden" form="filter" name="filter[category_id]" value="<?=$xs_filter['category_id'] ?>" />
+			<input type="hidden" form="filter" name="page" value="<?=$_GET['page']?>" />
+			<input type="hidden" form="filter" name="section" value="<?=$_GET['section']?>" />
+			<input type="hidden" form="filter" name="orderby" value="<?=$orderby?>" />
+			<input type="hidden" form="filter" name="order" value="<?=$order?>" />
+			<input type="hidden" form="filter" name="paged" value="1" />
+		</form><?
+
+		// Panel: manual column selector
+		?><div class="xs_columns_panel" id="xs_columns_panel" style="display:none">
+			<form method="post" action="">
+				<div class="xs_columns_panel__grid"><?
+				foreach($_all_columns as $col_key => $col_label) {
+					?><label class="xs_columns_panel__item">
+						<input type="checkbox" name="row[<?=esc_attr($col_key)?>]" value="y"<?=isset($xs_current_rows[$col_key]) ? ' checked' : ''?>>
+						<?=esc_html($col_label)?>
+					</label><?
+				}
+				?></div>
+				<input type="hidden" name="set_rows" value="y" />
+				<div class="xs_columns_panel__footer">
+					<button type="submit" class="button button-primary">Применить</button>
+					<button type="button" class="button" id="xs_columns_close">Закрыть</button>
+				</div>
+			</form>
+		</div><?
+
+		// Panel: preset config
+		?><div class="xs_preset_config_panel" id="xs_preset_config_panel" style="display:none">
+			<form method="post" action="">
+				<input type="hidden" name="save_preset_config" value="y" />
+				<div class="xs_preset_config__presets" id="xs_preset_config_presets"><?
+				foreach($_user_presets as $preset_key => $preset_def) {
+					?><div class="xs_preset_config__preset" data-key="<?=esc_attr($preset_key)?>">
+						<div class="xs_preset_config__preset_header">
+							<input type="text" name="preset_label[<?=esc_attr($preset_key)?>]" value="<?=esc_attr($preset_def['label'])?>" class="xs_preset_config__name" placeholder="Название" />
+							<span class="xs_preset_config__delete" title="Удалить пресет">×</span>
+						</div>
+						<div class="xs_preset_config__preset_cols"><?
+						foreach($_all_columns as $col_key => $col_label) {
+							?><label class="xs_preset_config__col">
+								<input type="checkbox" name="preset_rows[<?=esc_attr($preset_key)?>][<?=esc_attr($col_key)?>]" value="y"<?=in_array($col_key, $preset_def['rows']) ? ' checked' : ''?>>
+								<?=esc_html($col_label)?>
+							</label><?
+						}
+						?></div>
+					</div><?
+				}
+				?></div>
+				<div class="xs_preset_config__footer">
+					<button type="button" class="button" id="xs_preset_add">+ Добавить пресет</button>
+					<button type="submit" class="button button-primary">Сохранить</button>
+					<button type="button" class="button" id="xs_preset_config_close">Закрыть</button>
+				</div>
+			</form>
+			<div style="display:none" id="xs_preset_tpl">
+				<div class="xs_preset_config__preset" data-key="__KEY__">
+					<div class="xs_preset_config__preset_header">
+						<input type="text" disabled class="xs_preset_config__name" placeholder="Название" />
+						<span class="xs_preset_config__delete" title="Удалить пресет">×</span>
+					</div>
+					<div class="xs_preset_config__preset_cols"><?
+					foreach($_all_columns as $col_key => $col_label) {
+						?><label class="xs_preset_config__col">
+							<input type="checkbox" disabled data-col="<?=esc_attr($col_key)?>">
+							<?=esc_html($col_label)?>
+						</label><?
+					}
+					?></div>
+				</div>
+			</div>
+		</div><?
+
+		?><div class="filter_report_cat_container"><?
+
+			$_ar_parents = false;
+			$ar_parents = [];
+			
+			if(isset($xs_filter['category_id']) && !empty($xs_filter['category_id']))
+			{
+				if($_ar_parents = get_store_categoriy_parents($xs_filter['category_id']))
+					foreach($_ar_parents as $v)
+						$ar_parents[] = $v->parent_id;
+				
+				$ar_parents[] = $xs_filter['category_id'];
+			}
+			else
+				$ar_parents[] = 0;
+				
+			foreach($ar_parents as $parent_id)
+			{
+				$ar_childrens = [];
+				
+				foreach($big_data['category_list'] as $v)
+					if($v->parent_id == $parent_id)
+						$ar_childrens[] = $v;
+				
+				if(count($ar_childrens))
+				{
+					?><div class="filter_report_cat"><?
+					
+						if($parent_id == 0)
+						{
+							if($setFilter)
+							{
+								?><a href="/wp-admin/admin.php?page=<?=$_GET['page']?>&section=<?=$_GET['section']?>&orderby=<?=$orderby?>&order=<?=$order?>" class="filter_report_cat__item filter_report_cat__item--reset" title="Сбросить фильтр">×</a><?
+							}
+							?><div class="filter_report_cat__item filter_report_cat__item--all<?=!isset($xs_filter['category_id']) || empty($xs_filter['category_id']) || $xs_filter['category_id'] == 0 ? " filter_report_cat__item--selected" : "" ?>" onclick="jQuery('.xs_filter input[name=\'filter[category_id]\']').val('0'); jQuery('.xs_filter').submit()">Все</div><?
+						}
+
+						foreach($ar_childrens as $v)
+						{
+							$_is_selected = $_ar_parents && in_array($v->id, $ar_parents);
+							?><div class="filter_report_cat__item<?=$parent_id > 0 ? ' filter_report_cat__item--sub' : ''?><?=$_is_selected ? ' filter_report_cat__item--selected' : '' ?>" onclick="jQuery('.xs_filter input[name=\'filter[category_id]\']').val('<?=$v->id ?>'); jQuery('.xs_filter').submit()"><?=$_is_selected ? '× ' : ''?><?=$v->name ?></div><?
+						}
+						
+					?></div><?
+				}
+			}
+
+		?></div>
+	</div>
+<?php endif; ?>
+<?php if($xs_data->action == 'edit'): ?><form id="edit_components_form" action="" method="post"><input type="hidden" value="y" name="edit_components" /><?php endif; ?>
+	<div class="store_table__container">
+	<table class="wp-list-table store_table widefat striped xs_data_table xs_users xs_action_<?=$xs_data->action ?>">
+		<thead>
+			<tr><? 
+				
+				if(is_row('sort'))
+					get_order_th('Сорт', 'c.sort');
+				
+				if(is_row('category_id'))
+					get_order_th('Категория', 'c.category_id');
+				
+				if(is_row('name'))
+					get_order_th('Название', 'c.name');
+				
+				if(is_row('name_for_user'))
+					get_order_th('Название для покупателей', 'c.name_for_user');
+				
+				if(is_row('sale_type'))
+				{
+					?><td>Тип скидки</td><?
+				}
+				
+				if(is_row('group'))
+					get_order_th('Группа', 'c.group_id');
+				
+				if(is_row('coefficient'))
+				{
+					?><td><nobr>К-т</nobr></td><?
+				}
+				
+				if(is_row('days'))
+					get_order_th('Дни', 'c.days');
+				
+				if(is_row('ms_quantity'))
+					get_order_th('Ост', 'c.ms_quantity');
+				
+				if(is_row('purchase_price'))
+					get_order_th('Закуп цена', 'c.purchase_price');
+				
+				if(is_row('original_price'))
+					get_order_th('Себес', 'c.original_price');
+					
+				if(is_row('forced_price'))
+					get_order_th('П.цена', 'c.forced_price');
+			
+				if(is_row('sale_percent'))
+				{
+					?><td>Пр/ск</td><?
+				}
+				
+				if(is_row('price'))
+					get_order_th('Цена', 'c.price');
+				
+				if(is_row('sale_price'))
+					get_order_th('Цена без скидки', 'c.sale_price');
+				
+				if(is_row('sale_forced_price'))
+				{
+					?><td>Приор цена без скидки</td><?
+				}
+				
+				if(is_row('is_set_forced_price'))
+					get_order_th('Дни влияют на приоритетную цену', 'c.is_set_forced_price');
+				
+				if(is_row('sale_min_quantity'))
+				{
+					?><td>Мин. остаток для скидки</td><?
+				}
+				
+				if(is_row('sale_min_days'))
+				{
+					?><td>Мин. дней для скидки</td><?
+				}
+				
+				if(is_row('color'))
+					get_order_th('Цвет фона в отчёте', 'c.color');
+				
+				if(is_row('show_in_product'))
+					get_order_th('Отображать для покупателей в карточке товара', 'c.show_in_product');
+				
+				if(is_row('hide_quantity_in_product'))
+					get_order_th('Скрыть компонента в карточке товара', 'c.hide_quantity_in_product');
+				
+				if(is_row('is_fresh_delivery'))
+					get_order_th('Учитывать для «свежая поставка»', 'c.is_fresh_delivery');
+				
+				if(is_row('favorite'))
+					get_order_th('Избранное', 'c.favorite');
+				
+				if(is_row('ms_ids'))
+					get_order_th('ID МС', 'c.ms_ids');
+				
+				if(is_row('ms_is_update_price'))
+					get_order_th('Обновлять себестоимость с МС', 'c.ms_is_update_price');
+				
+				if(is_row('ms_is_update_days'))
+					get_order_th('Обновлять дни с МС', 'c.ms_is_update_days');
+				
+				if(is_row('ms_quantity_for_days'))
+					get_order_th('Остаток, при котором перестают обновляться дни', 'c.ms_quantity_for_days');
+				
+				if(is_row('ms_percent_outstock'))
+					get_order_th('Процент, прибавляемый при нулевом остатке', 'c.ms_percent_outstock');
+				
+				if(is_row('ms_is_update_retail_price'))
+					get_order_th('Обновлять розничную цену в МС', 'c.ms_is_update_retail_price');
+				
+				if(is_row('ms_image_id'))
+					get_order_th('ID МС для загрузки изображения', 'c.ms_image_id');
+				
+				for($i = 0; $i < $big_data['store_competitors_count']; $i++)
+				{
+					if(is_row('competitor_'.$i))
+					{
+						?><td><?=xs_get_option('xs_competitor_'.$i) ?></td><?
+					}
+				}
+				
+			?></tr>
+		</thead>
+		<tbody><? 
+		
+			foreach($xs_data->result as $v)
+			{ 
+				?><tr data-id="<?=$v->id ?>"<?=$xs_data->action == 'edit' ? ' class="is_edit"' : '' ?>><?
+				
+				include('templates/row.php')
+				
+				?></tr><?
+			} 
+		
+		?></tbody>
+	</table>
+	</div><?php if($xs_data->action == 'edit'): ?>
+	<div class="store_table_edit">
+		<input type="submit" value="Сохранить изменения" class="button-primary">
+		&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+		<label><input type="checkbox" value="y" name="is_send_telegram"> Отправить в TG</label>
+		&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+		<label><input type="checkbox" value="y" name="is_send_bitrix"> Задача в Б24</label>
+	</div>
+	</form>
+<?php endif; ?>
+<?php if(!defined('XS_REPORT_AJAX')): ?></div><?php endif; ?>

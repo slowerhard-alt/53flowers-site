@@ -1,0 +1,238 @@
+<?defined("IS_CHECK") || exit;
+
+// Фильтры
+
+$setFilter = false;
+$ar_where = [];
+
+$xs_filter = isset($_REQUEST['filter'])
+	? xs_format($_REQUEST['filter'])
+	: [];
+
+$xs_data['group_id'] = isset($_REQUEST['id'])
+	? (int)xs_format($_REQUEST['id'])
+	: 0;
+
+if(!$xs_data['group_id'])
+	die();
+
+
+if(isset($xs_filter['search']) && !empty($xs_filter['search']))
+{
+	$xs_filter['search'] = str_replace(" ", "%", xs_format($xs_filter['search']));
+	$search_like = '%' . $xs_filter['search'] . '%';
+
+	$ar_where[] = $wpdb->prepare(
+		"(`name` LIKE %s OR `name_for_user` LIKE %s)",
+		$search_like,
+		$search_like
+	);
+	$setFilter = true;
+}
+
+if(isset($xs_filter['category_id']) && !empty($xs_filter['category_id']) && $xs_filter['category_id'] != 0)
+{
+	$cat_ids[] = $xs_filter['category_id'];
+
+	$subcategories = get_store_subcategories_all($xs_filter['category_id']);
+	foreach($subcategories as $v)
+		$cat_ids[] = $v->id;
+
+	$ar_where[] = "`category_id` IN ('".implode("','", array_map('intval', $cat_ids))."')";
+	$setFilter = true;
+}
+
+if(isset($xs_filter['favorite']) && $xs_filter['favorite'] == 'y')
+{
+	$ar_where[] = "`favorite` = 'y'";
+	$setFilter = true;
+}
+
+if(isset($xs_filter['no_group']) && $xs_filter['no_group'] == 'y')
+{
+	$ar_where[] = "`id` NOT IN (SELECT `component_id` FROM `xsite_store_components_to_groups`)";
+	$setFilter = true;
+}
+
+$where = (count($ar_where) > 0) ? " WHERE ".implode(" AND ", $ar_where) : "";
+
+
+$xs_query = "SELECT * FROM `xsite_store_components`".$where;
+
+$big_data['number'] = 50;
+$big_data['offset'] = ($big_data['paged'] - 1) * $big_data['number'];
+
+$xs_data['components'] = $wpdb->get_results($xs_query.get_order_limit('sort', 'asc'));
+$xs_total = $wpdb->get_var(preg_replace('|(SELECT).+(FROM)|isU', "$1"." COUNT(*) "."$2",$xs_query));
+
+
+// Получаем список всех категорий для форм
+
+$big_data['category_list'] = get_store_categories();
+
+?><div class="admin_modal__title">Компоненты</div><?
+
+?><div id="xs_filter__result">
+	<form class="xs_filter xs_ajax_form" method="get" action="<?=$big_data['current_url'] ?>" data-result="xs_filter__result">
+		<label class="long">
+			<input type="text" name="filter[search]" value="<?=esc_attr($xs_filter['search']) ?>" placeholder="Поиск">
+		</label>
+		<label>
+			<input onchange="jQuery(this).parents('.xs_filter').submit()" type="checkbox" name="filter[favorite]"<?=$xs_filter['favorite'] == 'y' ? " checked" : "" ?> value="y"> Избранное
+		</label>
+		<label>
+			<input onchange="jQuery(this).parents('.xs_filter').submit()" type="checkbox" name="filter[no_group]"<?=isset($xs_filter['no_group']) && $xs_filter['no_group'] == 'y' ? " checked" : "" ?> value="y"> Без группы
+		</label>
+
+		<input type="hidden" name="filter[category_id]" value="<?=(int)xs_format($xs_filter['category_id']) ?>">
+		<input type="hidden" name="id" value="<?=(int)$xs_data['group_id'] ?>">
+
+		<label class="xs_submit">
+			<input type="submit" value="Искать" class="button-primary" />
+		</label><?
+
+		if($setFilter)
+		{
+			?>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#" onclick="
+				jQuery(this).parents('.xs_filter').find('input[name=\'filter[category_id]\']').val('')
+				jQuery(this).parents('.xs_filter').find('input[type=text]').val('')
+				jQuery(this).parents('.xs_filter').find('select').val('')
+				jQuery(this).parents('.xs_filter').find('input[type=checkbox]').prop('checked', false)
+				jQuery(this).parents('.xs_filter').submit()
+				return false
+			">× очистить фильтр</a><?
+		}
+
+		?><input type="hidden" value="1" name="paged" />
+
+	</form><?
+
+	?><div class="filter_report_cat_container"><?
+
+		$_ar_parents = false;
+		$ar_parents = [];
+
+		if(isset($xs_filter['category_id']) && !empty($xs_filter['category_id']))
+		{
+			if($_ar_parents = get_store_categoriy_parents($xs_filter['category_id']))
+				foreach($_ar_parents as $v)
+					$ar_parents[] = $v->parent_id;
+
+			$ar_parents[] = $xs_filter['category_id'];
+		}
+		else
+			$ar_parents[] = 0;
+
+		foreach($ar_parents as $parent_id)
+		{
+			$ar_childrens = [];
+
+			foreach($big_data['category_list'] as $v)
+				if($v->parent_id == $parent_id)
+					$ar_childrens[] = $v;
+
+			if(count($ar_childrens))
+			{
+				?><div class="filter_report_cat"><?
+
+					if($parent_id == 0)
+					{
+						?><div class="filter_report_cat__item<?=!isset($xs_filter['category_id']) || empty($xs_filter['category_id']) || $xs_filter['category_id'] == 0 ? " filter_report_cat__item--selected" : "" ?>" onclick="jQuery(this).parents('.admin_modal').find('.xs_filter input[name=\'filter[category_id]\']').val('0'); jQuery(this).parents('.admin_modal').find('.xs_filter').submit()">Все</div><?
+					}
+
+					foreach($ar_childrens as $v)
+					{
+						?><div class="filter_report_cat__item<?=($_ar_parents && in_array($v->id, $ar_parents)) ? " filter_report_cat__item--selected" : "" ?>" onclick="jQuery(this).parents('.admin_modal').find('.xs_filter input[name=\'filter[category_id]\']').val('<?=(int)$v->id ?>'); jQuery(this).parents('.admin_modal').find('.xs_filter').submit()"><?=esc_html($v->name) ?></div><?
+					}
+
+				?></div><?
+			}
+		}
+
+	?></div><?
+
+	?><div class="content_container"><?
+
+		?><div id="xs_current_page" style="display:none"><?=$big_data['paged'] ?></div><?
+		?><form class="xs_ajax_form" action="#" data-action="group-components-add" data-datatype="json" method="post"><?
+
+			if(is_array($xs_data['components']) && count($xs_data['components']))
+			{
+				?><div class="component_table">
+					<table class="wp-list-table widefat striped xs_data_table xs_users">
+						<thead>
+							<tr>
+								<td id="cb" class="manage-column column-cb check-column">
+									<input id="cb-select-all-1" type="checkbox">
+									<label for="cb-select-all-1"><span class="screen-reader-text">Выделить все</span></label>
+								</td>
+								<td>Фото</td>
+								<td>Наименование</td>
+								<td>Избранное</td>
+								<td>Цена</td>
+							</tr>
+						</thead>
+						<tbody><?
+
+						foreach($xs_data['components'] as $v)
+						{
+							$v->component_id = $v->id;
+
+							?><tr class="cadre_tr">
+								<td class="check-column">
+									<input id="cb-select-<?=(int)$v->component_id ?>" type="checkbox" name="post_data[components][<?=(int)$v->component_id ?>]" value="y">
+									<label for="cb-select-<?=(int)$v->component_id ?>"></label>
+								</td>
+								<td class="component_table__td-image">
+									<span class="component_table__image"<?=!empty($v->image) ? ' style="background-image:url('.esc_attr($big_data['component_image_path'].$v->image).')"' : "" ?>></span>
+								</td>
+								<td class="component_table__td-name">
+									<div class="component_table__name">
+										<a href="/wp-admin/admin.php?page=store&section=detail&id=<?=(int)$v->component_id ?>" target="_blank"><?=esc_html($v->name) ?></a>
+									</div>
+								</td>
+								<td class="component_table__td-favorite">
+									<span title="Избранное" class="component_table__set component_table__set--favorite xs_set_favorite<?=$v->favorite == 'y' ? " active" : "" ?>" data-id="<?=(int)$v->component_id ?>"><? get_svg("star", $v->color) ?></span>
+								</td>
+								<td class="component_table__td-price"><?
+
+									if($v->sale_price > 0)
+									{
+										?><span class="component_table__sale_price"><?=wc_price($v->sale_price, ['decimals' => 2]) ?></span><?
+									}
+
+									?><span class="component_table__price<?=$v->sale_price > 0 ? ' xs_red' : ""?>"><?=wc_price($v->price, ['decimals' => 2]) ?></span>
+								</td>
+							</tr><?
+						}
+
+						?></tbody>
+					</table>
+				</div><?
+			}
+
+			?><div class="clear"></div>
+
+			<div class="xs_form_result"></div>
+
+			<div class="xs_pages xs_flex xs_middle"><?
+
+				echo paginate_links(array(
+					  'base'      => str_replace(['&paged=0', '?paged=0'], '', setUrl($big_data['current_url'], 'paged', '0')).'%_%',
+					  'format'    => '&paged=%#%',
+					  'current'   => $big_data['paged'],
+					  'total'     => ceil($xs_total / $big_data['number']),
+					  'prev_next' => false,
+					  'type'      => 'list',
+				));
+
+				xs_input('group_id', $xs_data['group_id'], '', ['type' => 'hidden']);
+
+				?><div class="xs_flex xs_middle"><?
+					?><input type="submit" class="button-primary" value="Добавить компоненты" /><?
+				?></div><?
+			?></div><?
+
+		?></form><?
+	?></div>
+</div>

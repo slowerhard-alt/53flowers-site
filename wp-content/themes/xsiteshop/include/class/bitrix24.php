@@ -1,0 +1,205 @@
+<?
+// https://dev.1c-bitrix.ru/rest_help/crm/leads/crm_lead_fields.php
+
+class bitrix24
+{
+	public $url = 'https://flowers-club.bitrix24.ru/rest/1/goi1ildwcacn9u11/';
+	public $user_id = '';
+	public $user_task_id = 1;
+
+
+	// Формирование запроса в Мой склад
+
+	public function connect($url, $arg = '')
+	{
+		$curl = curl_init();
+		curl_setopt_array($curl, [
+			CURLOPT_SSL_VERIFYPEER => 0,
+			CURLOPT_POST => 1,
+			CURLOPT_HEADER => 0,
+			CURLOPT_RETURNTRANSFER => 1,
+			CURLOPT_URL => $this->url.$url,
+			CURLOPT_POSTFIELDS => http_build_query($arg),
+		]);
+
+		$result = curl_exec($curl);
+		curl_close($curl);
+
+		if($result === false)
+		{
+			echo "Ошибка";
+			return false;
+		}
+
+		$result = json_decode($result, true);
+
+		if(array_key_exists('error', $result))
+		{
+			echo "B24 has returned error: ".$result['error_description'];
+			return false;
+		}
+
+		return isset($result['result'])
+			? $result['result']
+			: $result;
+	}
+
+
+	// Добавляем лид
+
+	public function add_lid($arg)
+	{
+		if(isset($arg['PHONE']) && !empty($arg['PHONE']))
+		{
+			$arg['PHONE'] = $this->get_phone($arg['PHONE']);
+
+			if(!isset($arg['CONTACT_ID']))
+				$arg['CONTACT_ID'] = ($contact_id = $this->get_contact_id($arg['PHONE']))
+					? $contact_id
+					: "";
+		}
+
+		if(isset($arg['EMAIL']) && !empty($arg['EMAIL']))
+			$arg['EMAIL'] = [["VALUE" => $arg['EMAIL'], "VALUE_TYPE" => "HOME"]];
+
+		if(isset($arg['PHONE']) && !empty($arg['PHONE']))
+			$arg['PHONE'] = [["VALUE" => $arg['PHONE'], "VALUE_TYPE" => "WORK"]];
+
+		$arg["params"]["REGISTER_SONET_EVENT"] = "Y";
+		$arg["fields"] = $arg;
+		$arg["fields"]["ASSIGNED_BY_ID"] = $this->user_id;
+
+		return $this->connect("crm.lead.add.json", $arg);
+	}
+
+
+	// Добавляем задачи
+
+	public function add_task($arg, $user_id = 0)
+	{
+		if($user_id == 0)
+			$user_id = $this->user_task_id;
+
+		$arg["fields"] = $arg;
+		$arg["fields"]["RESPONSIBLE_ID"] = $user_id;
+
+		if(!isset($arg['FORKED_BY_TEMPLATE_ID']))
+			$arg["fields"]["FORKED_BY_TEMPLATE_ID"] = 301;
+
+		$task = $this->connect("tasks.task.add.json", $arg);
+
+		if(isset($task['task']['id']) && isset($arg['CHECKLIST']) && is_array($arg['CHECKLIST']))
+		{
+			foreach($arg['CHECKLIST'] as $v)
+			{
+				$_arg = [
+					'TASKID' => $task['task']['id'],
+					'FIELDS' => $v
+				];
+
+				$this->connect("task.checklistitem.add.json", $_arg);
+			}
+		}
+
+		return $task;
+	}
+
+
+	// Получаем контакт по номеру телефона
+
+	public function get_contact_id($phone)
+	{
+		$arg = [
+			"filter" => [
+				"PHONE" => $phone,
+			],
+			"select" => [
+				"ID",
+			]
+		];
+
+		$ar_contacts = $this->connect("crm.contact.list", $arg);
+
+		return isset($ar_contacts[0]['ID'])
+			? $ar_contacts[0]['ID']
+			: 0;
+	}
+
+
+	// Преобразовываем формат номера телефона
+
+	public function get_phone($phone)
+	{
+		$phone = preg_replace('/[^0-9]/', '', $phone);
+
+		if(substr($phone, 0, 1) == "8")
+			$phone = "7".substr($phone, 1);
+
+		return "+".$phone;
+	}
+
+	// Webhook для imbot (отправка сообщений от бота)
+	public $imbot_url  = 'https://flowers-club.bitrix24.ru/rest/1/kaafj9f2podag3va/';
+	public $bot_id     = 102295;
+	public $bot_token  = '075d7c6a1d64efbc971784498094c6ffcd06152d';
+
+	// Отдельный бот Price — только для уведомлений об изменении цен
+	public $price_bot_id    = 102511;
+	public $price_bot_token = '075d7c6a1d64efbc971784498094c6ffcd06152d';
+
+	// Запрос через imbot-webhook
+	public function connect_imbot($url, $arg = array())
+	{
+		$curl = curl_init();
+		curl_setopt_array($curl, [
+			CURLOPT_SSL_VERIFYPEER => 0,
+			CURLOPT_POST           => 1,
+			CURLOPT_HEADER         => 0,
+			CURLOPT_RETURNTRANSFER => 1,
+			CURLOPT_URL            => $this->imbot_url . $url,
+			CURLOPT_POSTFIELDS     => http_build_query($arg),
+		]);
+		$result = curl_exec($curl);
+		curl_close($curl);
+		if ($result === false) return false;
+		return json_decode($result, true);
+	}
+
+	// Отправить сообщение от бота в чат
+	public function send_message($dialog_id, $message)
+	{
+		return $this->connect_imbot('imbot.v2.Chat.Message.send', array(
+			'botId'    => $this->bot_id,
+			'botToken' => $this->bot_token,
+			'dialogId' => $dialog_id,
+			'fields'   => array('message' => $message),
+		));
+	}
+
+	// Отправить сообщение от бота Price (уведомления об изменении цен)
+	// $with_button=true добавляет кнопку «Показать прайс» → шлёт /prices в чат
+	public function send_price_message($dialog_id, $message, $with_button = false)
+	{
+		$fields = array('message' => $message);
+
+		if ($with_button) {
+			$fields['ATTACH'] = array(array(
+				'BLOCKS' => array(array(
+					'TYPE'     => 'ACTION',
+					'ELEMENTS' => array(array(
+						'TYPE'   => 'BUTTON',
+						'TEXT'   => 'Показать прайс',
+						'ACTION' => array('TYPE' => 'send', 'VALUE' => '/prices'),
+					)),
+				)),
+			));
+		}
+
+		return $this->connect_imbot('imbot.v2.Chat.Message.send', array(
+			'botId'    => $this->price_bot_id,
+			'botToken' => $this->price_bot_token,
+			'dialogId' => $dialog_id,
+			'fields'   => $fields,
+		));
+	}
+}

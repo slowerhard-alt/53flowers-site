@@ -1,0 +1,1787 @@
+<?
+$big_data['store_groups'] = [
+	0 	=> ($name = xs_get_option('xs_store_0_name')) ? $name : "Без наценки",
+	1 	=> ($name = xs_get_option('xs_store_1_name')) ? $name : "1 группа",
+	2 	=> ($name = xs_get_option('xs_store_2_name')) ? $name : "2 группа",
+	3 	=> ($name = xs_get_option('xs_store_3_name')) ? $name : "3 группа",
+	4 	=> ($name = xs_get_option('xs_store_4_name')) ? $name : "4 группа",
+	5 	=> ($name = xs_get_option('xs_store_5_name')) ? $name : "5 группа",
+	6 	=> ($name = xs_get_option('xs_store_6_name')) ? $name : "6 группа",
+	7 	=> ($name = xs_get_option('xs_store_7_name')) ? $name : "7 группа", 
+	8 	=> ($name = xs_get_option('xs_store_8_name')) ? $name : "8 группа", 
+	9 	=> ($name = xs_get_option('xs_store_9_name')) ? $name : "9 группа", 
+	10 	=> ($name = xs_get_option('xs_store_10_name')) ? $name : "10 группа", 
+	11 	=> ($name = xs_get_option('xs_store_11_name')) ? $name : "11 группа", 
+	12 	=> ($name = xs_get_option('xs_store_12_name')) ? $name : "12 группа", 
+];
+
+$big_data['store_competitors_count'] = 5;
+$big_data['sale_rules'] = ['' => '- без правил -', 'count' => 'От количества'];
+
+// Получаем структуру категорий склада
+
+function get_store_categories($id_name = false, $delimiter = " → ")
+{
+	global $wpdb;
+	
+	$db_categories = $wpdb->get_results("SELECT * FROM `xsite_store_categories` ORDER BY `sort`");
+	
+	foreach($db_categories as $v)
+	{
+		$v->fullname = get_store_categoriy_name($v->id, $delimiter);
+
+		if($id_name)
+			$divisions[$v->id] = $v->fullname;
+		else
+			$divisions[$v->id] = $v;
+	}
+	
+	return $divisions;
+}
+
+
+// Выводим полное имя категории склада 
+
+function get_store_categoriy_name($category_id, $delimiter = ', ')
+{
+	global $ar_store_categories, $wpdb;
+	
+	if(!isset($ar_store_categories) || count($ar_store_categories) == 0)
+	{
+		$_categories = $wpdb->get_results("SELECT * FROM `xsite_store_categories` ORDER BY `sort`");
+		
+		foreach($_categories as $v)
+			$ar_store_categories[$v->id] = $v;
+	}
+	
+	if(isset($ar_store_categories[$category_id]))
+	{
+		if($ar_store_categories[$category_id]->parent_id != $ar_store_categories[$category_id]->id && isset($ar_store_categories[$ar_store_categories[$category_id]->parent_id]))
+		{
+			return get_store_categoriy_name($ar_store_categories[$category_id]->parent_id, $delimiter).$delimiter.$ar_store_categories[$category_id]->name;
+		}
+		else
+			return $ar_store_categories[$category_id]->name;
+	}
+	else
+		return false;
+}
+
+
+// Получаем массив всех родительских категорий склада 
+
+function get_store_categoriy_parents($category_id)
+{
+	global $ar_store_categories, $wpdb;
+	
+	if(!isset($ar_store_categories) || count($ar_store_categories) == 0)
+	{
+		$_categories = $wpdb->get_results("SELECT * FROM `xsite_store_categories` ORDER BY `sort`");
+		
+		foreach($_categories as $v)
+			$ar_store_categories[$v->id] = $v;
+	}
+	
+	if(isset($ar_store_categories[$category_id]))
+	{
+		if(isset($ar_store_categories[$ar_store_categories[$category_id]->parent_id]))
+			return array_merge(get_store_categoriy_parents($ar_store_categories[$category_id]->parent_id), [$ar_store_categories[$category_id]]);
+		else
+			return [$ar_store_categories[$category_id]];
+	}
+	else
+		return false;
+}
+
+
+// Получаем все дочерние катагории
+
+function get_store_subcategories_all($parent_id = 0)
+{
+	global $wpdb, $ar_divisions;
+	
+	if(!isset($ar_divisions) || empty($ar_divisions) || !is_array($ar_divisions) || count($ar_divisions) == 0) 
+		$ar_divisions = $wpdb->get_results("SELECT * FROM `xsite_store_categories` ORDER BY `sort`");
+	
+	if(!$ar_divisions)
+		return false;
+	
+	foreach($ar_divisions as $v)
+		if($v->parent_id == $parent_id)
+		{
+			$result[] = $v;
+			$result = array_merge($result, get_store_subcategories_all($v->id));
+		}
+	
+	return isset($result) && count($result) > 0 ? $result : array();
+}
+
+
+// Обновляем текущую цену и остатки компонента
+
+function update_price_component($component_id = 0, $is_product_update = false, $is_send_telegram = false, $is_send_bitrix = false)
+{
+	global $wpdb, $big_data;
+	
+	$ar_set_prices = [];
+	$component_id = (int)$component_id;
+	$ar_set_components = [];
+	
+	$w = $component_id > 0
+		? " WHERE `id` = '".$component_id."'"
+		: "";
+		
+	if(!$db_component = $wpdb->get_results("SELECT * FROM `xsite_store_components`".$w))
+		return false;
+	
+	foreach($db_component as $c)
+	{
+		$is_set_ms_price = false;
+		
+		$c->sale_rules = !empty($c->sale_rules)
+			? json_decode($c->sale_rules, true)
+			: [];
+		
+		if(isset($c->sale_rules['type']) && $c->sale_rules['type'] == 'count')
+			$c->sale_percent = 0;
+		else
+			$c->sale_percent = isset($c->sale_rules['percent']) && !empty($c->sale_rules['percent'])
+				? (int)$c->sale_rules['percent']
+				: 0;
+		
+		$component_sale_price = 0;
+		
+		$coefficient = get_store_coefficient($c->group_id, $c->days);
+		
+		$_component_price = round($c->original_price * $coefficient['k'], 2);
+		
+		if($c->forced_price > 0)
+		{
+			if($c->is_set_forced_price == 'y')
+			{
+				$first_coefficient = get_store_coefficient($c->group_id, 1);
+				$_component_sale_price = round($c->original_price * $first_coefficient['k'], 2);
+				
+				$sale_percent = $_component_sale_price != 0
+					? $_component_price / $_component_sale_price * 100
+					: 0;
+				
+				if($sale_percent > 0)
+				{
+					$component_sale_price = round($c->forced_price, 2);
+					$component_price = round($component_sale_price/100*$sale_percent, 2);
+				}
+				else
+				{
+					$component_price = round($c->forced_price * $coefficient['k'], 2);
+					$component_sale_price = 0;
+				}
+			}
+			else
+				$component_price = round($c->forced_price, 2);
+		}
+		else
+			$component_price = $_component_price;
+		
+		if($c->sale_percent > 0)
+			$component_sale_price = $component_price + ($component_price / 100 * $c->sale_percent);
+		elseif($c->forced_price == 0)
+		{
+			$first_coefficient = get_store_coefficient($c->group_id, 1);
+			
+			if($coefficient['k'] != $first_coefficient['k'])
+				$component_sale_price = round($c->original_price * $first_coefficient['k'], 2);
+		}
+		
+		if($component_price >= $component_sale_price)
+			$component_sale_price = 0;
+		
+		if($component_price != $c->price || $component_sale_price != $c->sale_price)
+		{
+			$wpdb->query("UPDATE 
+					`xsite_store_components`
+				SET 
+					`price` = '".$component_price."', 
+					`sale_price` = '".$component_sale_price."' 
+				WHERE 
+					`id` = '".$c->id."'
+			"); 
+			$ar_set_components[] = $c->id;
+			
+			$is_set_ms_price = true;
+			
+			if($component_price != $c->price)
+				$ar_set_prices[] = $c->name." ".$component_price."р (".$c->price."р)";
+		}
+		elseif($is_product_update)
+		{
+			$ar_set_components[] = $c->id;
+			$is_set_ms_price = true;
+		}
+		
+		
+		// Обновляем цену у товаров в МС
+		
+		if($is_set_ms_price && $c->ms_is_update_retail_price == 'y' && !empty($c->ms_ids))
+		{
+			$ms_components = json_decode($c->ms_components, true);
+			
+			if(is_array($ms_components))
+			{
+				if(!class_exists('MoySklad'))
+					include $_SERVER['DOCUMENT_ROOT'].'/moysklad/class.php';
+				
+				$MoySklad = new MoySklad;
+				
+				foreach($ms_components as $v)
+				{
+					if(
+						isset($v['id']) && 
+						!empty(trim($v['id'])) && 
+						isset($v['quantity']) && 
+						$v['quantity'] > 0 && 
+						(
+							!isset($v['_price']) ||
+							(float)$v['_price'] != (float)$component_price
+						)
+					)
+						$MoySklad->update_price(trim($v['id']), $component_price);
+				}
+			}
+		}
+	}
+	
+	
+	// Обновлем цену у товаров, которые содержать компонент
+	
+	$db_products = false;
+	
+	if($is_product_update && $component_id == 0)
+		$db_products = $wpdb->get_results("SELECT `product_id` FROM `xsite_store_products` WHERE `site` = '53flowers'");
+	elseif(count($ar_set_components))
+		$db_products = $wpdb->get_results("SELECT `product_id` FROM `xsite_store_products` WHERE `component_id` IN ('".implode("','", $ar_set_components)."') AND `site` = '53flowers'");
+	
+	if($db_products)
+	{
+		$ar_products = [];
+		
+		foreach($db_products as $v)
+			$ar_products[] = $v->product_id;
+		
+		$ar_products = array_unique($ar_products);
+		
+		foreach($ar_products as $v)
+			set_product_price($v);
+	}
+		
+		
+	// Отправляем уведомления в TG и Б24
+	
+	if(count($ar_set_prices) > 0)
+	{
+		if($is_send_telegram)
+		{
+			message_to_telegram(implode("\n", $ar_set_prices).
+				(is_user_logged_in() ? "\nЦены изменил: ".$big_data['current_user']->display_name : ""));
+		}
+		
+		if($is_send_bitrix)
+		{		
+			if(!class_exists('bitrix24'))
+				include $_SERVER['DOCUMENT_ROOT'].'/wp-content/themes/xsiteshop/include/class/bitrix24.php';
+
+			$b24 = new bitrix24;
+
+			$user_id = 5593;
+			//$user_id = 90763;
+			
+			$b24->add_task([
+				'TITLE' => "Замена цен ".date("d.m.Y H:i", strtotime('now') + (3600 * 3)),
+				'DESCRIPTION' => implode("\n", $ar_set_prices).
+					(is_user_logged_in() ? "\nЦены изменил: ".$big_data['current_user']->display_name : ""),
+				'CREATED_BY' => $user_id,
+				'DEADLINE' => date('Y-m-d H:i:s', strtotime('now') + (3600 * 7)),
+				'GROUP_ID' => 79,
+				'CHECKLIST' => [
+					["TITLE" => 'Поменять цены на ФВ'],
+					["TITLE" => 'Поменять цены на озон'],
+					["TITLE" => 'Сгенерировать фид для вк и загрузить его в вк'],
+					["TITLE" => 'Сгенерировать фид для ЯМ и обновить его в ЯМ'],
+					["TITLE" => 'Сгенерировать фид для авито'],
+					["TITLE" => 'Сгенерировать фид для Купера'],
+				]
+			], $user_id);
+		}
+	}
+}
+
+
+// Получаем значение коэффициента
+
+global $ar_coefficient;
+
+$ar_coefficient = [];
+
+function get_store_coefficient($group_id, $days)
+{
+	global $ar_coefficient;
+	
+	if($group_id == 0)
+		return ['k' => 1];
+	
+	if($days <= 3)
+		$k = "0-3";
+	elseif($days <= 6)
+		$k = "4-6";
+	elseif($days <= 10)
+		$k = "7";
+	else
+		$k = "10";
+	
+	$k = "xs_store_".$group_id."_".$k;
+	
+	if(!isset($ar_coefficient[$k]) || empty($ar_coefficient[$k]))
+		$ar_coefficient[$k] = ['k' => ((float)xs_get_option($k) ?: 1.0)];
+	
+	return $ar_coefficient[$k];
+}
+
+
+// Изменяем компоненты в составе товара
+
+function set_store_products($product_id = 0, $component_id = 0, $quantity = 0, $name = "", $sale = 0, $is_markup = '', $is_set_stock_ms = '')
+{
+	global $big_data, $wpdb;
+	
+	if($product_id == 0 || $component_id == 0)
+		return false;
+
+	$quantity = round((float)$quantity, 1);
+	$set = false;
+	$sale = (int)$sale;
+	
+	if($is_markup != 'y')
+		$is_markup = '';
+	
+	if($is_set_stock_ms != 'y')
+		$is_set_stock_ms = '';
+	
+	if($d = $wpdb->get_row("SELECT * FROM `xsite_store_products` WHERE `product_id` = '".$product_id."' AND `component_id` = '".$component_id."' AND `site` = '53flowers'"))
+	{
+		if($quantity > 0 && ($d->quantity != $quantity || $d->name_in_product != $name || $d->sale_in_product != $sale || $d->is_markup != $is_markup || $d->is_set_stock_ms != $is_set_stock_ms))
+		{
+			$wpdb->query("
+				UPDATE 
+					`xsite_store_products` 
+				SET 
+					`quantity` = '".$quantity."', 
+					`name_in_product` = '".$wpdb->_real_escape($name)."', 
+					`sale_in_product` = '".$sale."', 
+					`is_markup` = '".$is_markup."', 
+					`is_set_stock_ms` = '".$is_set_stock_ms."' 
+				WHERE 
+					`product_id` = '".$product_id."' AND 
+					`component_id` = '".$component_id."' AND
+					`site` = '53flowers'
+			");
+			$set = true;
+		}
+		elseif($quantity == 0)
+		{
+			$wpdb->query("DELETE FROM `xsite_store_products` WHERE `product_id` = '".$product_id."' AND `component_id` = '".$component_id."' AND `site` = '53flowers'");
+			$set = true;
+		}
+	}
+	elseif($quantity > 0)
+	{
+		$wpdb->query("
+			INSERT 
+				INTO `xsite_store_products` 
+			SET 
+				`product_id` = '".$product_id."', 
+				`component_id` = '".$component_id."', 
+				`quantity` = '".$quantity."', 
+				`name_in_product` = '".$wpdb->_real_escape($name)."',
+				`sale_in_product` = '".$sale."',
+				`is_markup` = '".$is_markup."',
+				`is_set_stock_ms` = '".$is_set_stock_ms."',
+				`site` = '53flowers'
+		");
+		$set = true;
+	}
+	
+	// Пересчитываем цену товара
+		
+	if($set)
+		set_product_price($product_id);
+}
+
+
+// Очищаем компоненты в составе товара
+
+function clear_store_products($product_id)
+{
+	global $big_data, $wpdb;
+	
+	if($product_id == 0)
+		return false;
+	
+	return $wpdb->query($wpdb->prepare("DELETE FROM `xsite_store_products` WHERE `product_id` = %d AND `site` = '53flowers'", $product_id));
+}
+
+
+// Изменяем компоненты в составе заказа
+
+function set_store_orders($order_item_id = 0, $component_id = 0, $quantity = 0)
+{
+	global $big_data, $wpdb;
+	
+	if($order_item_id == 0 || $component_id == 0)
+		return false;
+
+	$quantity = round((float)$quantity, 1);
+	$set = false;
+	
+	if($d = $wpdb->get_row("SELECT * FROM `xsite_store_orders` WHERE `order_item_id` = '".$order_item_id."' AND `component_id` = '".$component_id."'"))
+	{
+		if($quantity > 0 && $d->quantity != $quantity)
+		{
+			$wpdb->query("UPDATE `xsite_store_orders` SET `quantity` = '".$quantity."' WHERE `order_item_id` = '".$order_item_id."' AND `component_id` = '".$component_id."'");
+			$set = true;
+		}
+		elseif($quantity == 0)
+		{
+			$wpdb->query("DELETE FROM `xsite_store_orders` WHERE `order_item_id` = '".$order_item_id."' AND `component_id` = '".$component_id."'");
+			$set = true;
+		}
+		
+		$order_id = $d->order_id;
+	}
+	elseif($quantity > 0)
+	{
+		$order_id = $wpdb->get_var("SELECT `order_id` FROM `xsite_wc_order_product_lookup` WHERE `order_item_id` = '".$order_item_id."'");
+		$price = $wpdb->get_row("SELECT `price`, `original_price`, `sale_price` FROM `xsite_store_components` WHERE `id` = '".$component_id."'");
+		
+		$wpdb->query("
+			INSERT INTO 
+				`xsite_store_orders` 
+			SET 
+				`order_id` = '".$order_id."',
+				`order_item_id` = '".$order_item_id."', 
+				`component_id` = '".$component_id."', 
+				`quantity` = '".$quantity."',
+				`price` = '".$price->price."',
+				`sale_price` = '".$price->sale_price."',
+				`original_price` = '".$price->original_price."'
+		");
+		$set = true;
+	}
+}
+
+
+// Сортировка компонентов Моего склада
+
+function get_store_components_ms_sort($a, $b)
+{
+    return ($a['quantity'] < $b['quantity']);
+}
+
+
+// Получаем процент скидки для скидки от количества
+
+function get_percent_for_sale_on_quantity($quantity)
+{
+	/*
+	if($quantity >= 150)
+		$percent = 30;
+	else
+	*/
+	
+	if($quantity >= 75)
+		$percent = 25;
+	elseif($quantity >= 50)
+		$percent = 20;
+	elseif($quantity >= 25)
+		$percent = 15;
+	elseif($quantity >= 15)
+		$percent = 10;
+	else
+		$percent = 0;
+	
+	return $percent;
+}
+
+
+// Получаем компоненты, входящие в товар
+
+function get_store_components_product($product_id = 0, $all = false, $order = "c.`sort`, c.`id`", $site = '53flowers')
+{
+	global $big_data, $wpdb;
+	
+	$result = [];
+	
+	if($product_id == 0)
+		return $result;
+	
+	if(!$all)
+	{
+		$allowed_sites = ['53flowers', 'cvetyru-vn'];
+		$site = in_array($site, $allowed_sites, true) ? $site : '53flowers';
+		$db_store_products = $wpdb->get_results($wpdb->prepare("SELECT * FROM `xsite_store_products` WHERE `product_id` = %d AND `site` = %s", $product_id, $site));
+	}
+	else
+	{
+		$db_store_products = $wpdb->get_results($wpdb->prepare("
+			SELECT 
+				p.*,
+				c.price,
+				c.days,
+				c.group_id,
+				c.sale_price,
+				c.purchase_price,
+				c.original_price,
+				c.name,
+				c.name_for_user,
+				c.sale_rules,
+				c.image,
+				c.favorite,
+				c.show_in_product,
+				c.hide_quantity_in_product,
+				c.category_id,
+				c.ms_quantity,
+				c.ms_components,
+				po.post_parent
+			FROM 
+				`xsite_store_products` AS p
+			LEFT JOIN `xsite_store_components` AS c ON c.id = p.`component_id`
+			LEFT JOIN `xsite_posts` AS po ON po.`ID` = p.`product_id`
+			WHERE 
+				p.`product_id` = %d AND
+				p.`site` = %s
+			ORDER BY
+				c.`sort`, c.`id`
+		", $product_id, $site));
+		
+		foreach($db_store_products as $k => $v)
+		{
+			$v->sale_rules = json_decode($v->sale_rules, true);
+			$db_store_products[$k]->sale_rules = $v->sale_rules;
+			$db_store_products[$k]->_sale_price = $db_store_products[$k]->sale_price;
+			$db_store_products[$k]->_price = $db_store_products[$k]->price;
+			$db_store_products[$k]->sale_on_quantity_percent = 0;
+			
+			if($v->sale_in_product > 0)
+			{
+				if($v->is_markup == 'y')
+				{
+					$db_store_products[$k]->sale_price = 0;
+					$db_store_products[$k]->price = $db_store_products[$k]->price + ($db_store_products[$k]->price / 100 * $v->sale_in_product);
+				}
+				else
+				{
+					$db_store_products[$k]->sale_price = $db_store_products[$k]->price;
+					$db_store_products[$k]->price = $db_store_products[$k]->price - ($db_store_products[$k]->price / 100 * $v->sale_in_product);
+				}
+			}
+			elseif(isset($v->sale_rules['type']) && $v->sale_rules['type'] == 'count')
+			{
+				$min_quantity = isset($v->sale_rules['min_quantity'])
+					? (int)$v->sale_rules['min_quantity']
+					: 0;
+					
+				$min_days = isset($v->sale_rules['min_days'])
+					? (int)$v->sale_rules['min_days']
+					: 0;
+					
+				if($v->ms_quantity >= $min_quantity && $v->days >= $min_days)
+				{
+					if($percent = get_percent_for_sale_on_quantity($v->quantity))
+					{
+						if(get_post_meta(($v->post_parent ? $v->post_parent : $product_id), "is_sale_on_quantity", true) != 'y')
+						{
+							$db_store_products[$k]->sale_price = $db_store_products[$k]->price;
+							$db_store_products[$k]->price = $db_store_products[$k]->price - ($db_store_products[$k]->price / 100 * $percent);
+						}
+
+						$db_store_products[$k]->sale_on_quantity_percent = $percent;
+					}
+				}
+			}
+			
+			$db_store_products[$k]->ms_components = !empty($v->ms_components)
+				? json_decode($v->ms_components, true)
+				: [];
+			
+			if(count($db_store_products[$k]->ms_components))
+				uasort($db_store_products[$k]->ms_components, 'get_store_components_ms_sort');
+		}
+	}
+	
+	foreach($db_store_products as $v)
+		$result[$v->component_id] = $all ? $v : $v->quantity;
+	
+	return $result;
+}
+
+
+// Получаем компоненты, входящие в товар в заказе
+
+function get_store_components_order($order_item_id = 0, $all = false)
+{
+	global $big_data, $wpdb;
+	
+	if($order_item_id == 0)
+		return false;
+	
+	if(!$all)
+		$db_store_products = $wpdb->get_results("SELECT * FROM `xsite_store_orders` WHERE `order_item_id` = '".$order_item_id."'");
+	else
+		$db_store_products = $wpdb->get_results("
+			SELECT 
+				o.*,
+				c.price AS actual_component_price,
+				c.sale_price AS actual_component_sale_price,
+				c.original_price AS actual_component_original_price,
+				c.name,
+				c.sale_percent,
+				c.image,
+				c.favorite
+			FROM 
+				`xsite_store_orders` AS o
+			LEFT JOIN `xsite_store_components` AS c ON c.id = o.`component_id`
+			WHERE 
+				o.`order_item_id` = '".$order_item_id."'
+		");
+	
+	foreach($db_store_products as $v)
+		$result[$v->component_id] = $all ? $v : $v->quantity;
+	
+	return $result;
+}
+
+
+// Устанавливаем цену товара
+
+function set_product_price($product_id = 0)
+{
+	global $big_data, $wpdb;
+	
+	if($product_id == 0)
+		return false;
+		
+	$price = 0;
+	$markup = 0;
+	$size_sale = 0;
+	$stock = 'instock';
+	$is_fresh_delivery = 'y';
+	$is_sale_on_quantity = 0;
+	
+	if(!$db_store_products = $wpdb->get_results("
+		SELECT 
+			p.*,
+			c.days,
+			c.price,
+			c.sale_price,
+			c.sale_rules,
+			c.is_fresh_delivery,
+			c.ms_quantity
+		FROM 
+			`xsite_store_products` AS p
+		LEFT JOIN `xsite_store_components` AS c ON c.`id` = p.`component_id`
+		WHERE 
+			p.`product_id` = '".$product_id."' AND
+			p.`site` = '53flowers'
+	"))
+		return false;
+	
+	$parent_id = $wpdb->get_var("SELECT `post_parent` FROM `xsite_posts` WHERE `ID` = '".$product_id."'");
+	$k = 0;
+	
+	if($sale_in_product = (int)$wpdb->get_var("SELECT `meta_value` FROM `xsite_postmeta` WHERE `post_id` = '".$product_id."' AND `meta_key` = 'sale_in_product'"))
+		$is_markup = $wpdb->get_var("SELECT `meta_value` FROM `xsite_postmeta` WHERE `post_id` = '".$product_id."' AND `meta_key` = 'is_markup'");
+	elseif($parent_id)
+		if($sale_in_product = (int)$wpdb->get_var("SELECT `meta_value` FROM `xsite_postmeta` WHERE `post_id` = '".$parent_id."' AND `meta_key` = 'sale_in_product'"))
+			$is_markup = $wpdb->get_var("SELECT `meta_value` FROM `xsite_postmeta` WHERE `post_id` = '".$parent_id."' AND `meta_key` = 'is_markup'");
+	
+	$_pid_for_sale_on_quantity = $parent_id ? $parent_id : $product_id;
+	$_is_sale_on_quantity_disabled = ($wpdb->get_var($wpdb->prepare(
+		"SELECT `meta_value` FROM `xsite_postmeta` WHERE `post_id` = %d AND `meta_key` = 'is_sale_on_quantity'",
+		$_pid_for_sale_on_quantity
+	)) == 'y');
+
+	foreach($db_store_products as $v)
+	{
+		$v->sale_rules = json_decode($v->sale_rules, true);
+		
+		if($sale_in_product)
+		{
+			$v->sale_in_product = $sale_in_product;
+			$v->is_markup = $is_markup;
+		}
+		
+		if($v->sale_in_product > 0)
+		{
+			if($v->is_markup == 'y')
+			{
+				//$markup = $markup + ($v->price * $v->quantity);
+				$price = $price + (($v->price * $v->quantity) + ($v->price * $v->quantity) / 100 * $v->sale_in_product);
+			}
+			else
+			{
+				$markup = $markup + ($v->price * $v->quantity);
+				$price = $price + (($v->price * $v->quantity) - ($v->price * $v->quantity) / 100 * $v->sale_in_product);
+			}
+		}
+		else
+		{
+			if(isset($v->sale_rules['type']) && $v->sale_rules['type'] == 'count')
+			{
+				$min_quantity = isset($v->sale_rules['min_quantity'])
+					? (int)$v->sale_rules['min_quantity']
+					: 0;
+					
+				$min_days = isset($v->sale_rules['min_days'])
+					? (int)$v->sale_rules['min_days']
+					: 0;
+					
+				if($v->ms_quantity >= $min_quantity && $v->days >= $min_days)
+				{
+					if(!$_is_sale_on_quantity_disabled)
+					{
+						if($percent = get_percent_for_sale_on_quantity($v->quantity))
+						{
+							$v->sale_price = $v->price;
+							$v->price = $v->price - ($v->price / 100 * $percent);
+						}
+					}
+					else
+						$is_sale_on_quantity = $v->quantity;
+				}
+			}
+				
+			$price = $price + ($v->price * $v->quantity);
+		
+			if($v->sale_price == 0)
+				$v->sale_price = $v->price;
+			
+			$markup = $markup + ($v->sale_price * $v->quantity);
+		}
+		
+		if($v->is_set_stock_ms == 'y' && $v->ms_quantity < $v->quantity)
+			$stock = 'outofstock';
+
+		if($v->is_fresh_delivery == 'y')
+		{
+			$k++;
+			
+			if((int)$v->days > 2 || $stock == 'outofstock')
+				$is_fresh_delivery = '';
+		}
+	}
+	
+	if($k == 0)
+		$is_fresh_delivery = '';
+	
+	$price = ceil($price/5)*5;
+	$markup = ceil($markup/5)*5;
+	
+	$sale_price = '';
+	$regular_price = $price;
+	
+	if($markup > $price)
+	{
+		$sale_price = $price;
+		$regular_price = $markup;
+		$size_sale = $markup - $price;
+	}
+	elseif($is_sale_on_quantity) // Скидка на весь товар / вариацию, если нет других скидок и есть компонент со скидкой от количества
+	{
+		if($percent = get_percent_for_sale_on_quantity($is_sale_on_quantity))
+		{
+			$sale_price = ceil(($price - ($price / 100 * $percent))/5)*5;
+			$price = $sale_price;
+			$size_sale = $price - $sale_price;
+		}
+	}
+	
+	$result = [
+		'_regular_price' => $regular_price,
+		'_price' => $price,
+		'_sale_price' => $sale_price,
+		'_size_sale' => $size_sale,
+		'_stock_status' => $stock,
+		'_fresh_delivery' => $is_fresh_delivery,
+	];
+	
+	$is_update = false;
+	
+	// Batch-fetch existing meta rows to avoid N+1 queries
+	$_meta_keys = array_keys($result);
+	$big_data['taboo_price'][$product_id] = $_meta_keys;
+	$_keys_in = implode("','", $_meta_keys);
+	$_existing_rows = $wpdb->get_results("SELECT * FROM `xsite_postmeta` WHERE `post_id` = '".$product_id."' AND `meta_key` IN ('".$_keys_in."')");
+	$_existing_map = [];
+	foreach($_existing_rows as $_row)
+		$_existing_map[$_row->meta_key] = $_row;
+
+	foreach($result as $k => $v)
+	{
+		if(isset($_existing_map[$k]))
+		{
+			$value = $_existing_map[$k];
+			if($value->meta_value != $v)
+			{
+				$is_update = true;
+				$wpdb->query("UPDATE `xsite_postmeta` SET `meta_value` = '".$v."' WHERE `meta_id` = '".$value->meta_id."'");
+			}
+				
+			$wpdb->query("DELETE FROM `xsite_postmeta` WHERE `post_id` = '".$product_id."' AND `meta_key` = '".$k."' AND `meta_id` <> '".$value->meta_id."'");
+		}
+		else
+		{
+			$is_update = true;
+			$wpdb->query("INSERT INTO `xsite_postmeta` SET `meta_value` = '".$v."', `post_id` = '".$product_id."', `meta_key` = '".$k."'");
+		}
+	}
+
+	//$is_update = true; // ЗАКОММЕНТИРОВАТЬ
+
+	if($is_update)
+	{
+		$arg = ['product_id' => $product_id, 'price' => $result['_price'], 'regular_price' => $result['_regular_price'], 'sale_price' => $result['_sale_price']];
+		
+		add_price_history($arg);
+		
+		if($value = $wpdb->get_row("SELECT * FROM `xsite_wc_product_meta_lookup` WHERE `product_id` = '".$product_id."'"))
+		{
+			$ar_set = [];
+			
+			if($value->stock_status != $result['_stock_status'])
+				$ar_set[] = "`stock_status` = '".$result['_stock_status']."'";
+			
+			if($value->min_price != $result['_price'])
+				$ar_set[] = "`min_price` = '".$result['_price']."'";
+			
+			if($value->max_price != $result['_price'])
+				$ar_set[] = "`max_price` = '".$result['_price']."'";
+			
+			if(count($ar_set))
+				$wpdb->query("UPDATE `xsite_wc_product_meta_lookup` SET ".implode(", ", $ar_set)." WHERE `product_id` = '".$product_id."'");
+		}
+
+	
+		// Устанавливаем цену родительского товара (самая дешёвая вариация)
+		
+		if($parent_id)
+		{
+			$wpdb->query("DELETE FROM `xsite_store_products` WHERE `product_id` = '".$parent_id."' AND `site` = '53flowers'");
+			
+			$_size_sale = 0;
+			$_stock = 'outofstock';
+			$_is_fresh_delivery = 'y';
+			$child_id = 0;
+			
+			$childrens = $wpdb->get_results("
+				SELECT 
+					p.`ID` 
+				FROM 
+					`xsite_posts` p
+				WHERE 
+					p.`post_parent` = '".$parent_id."' AND 
+					p.`post_type` = 'product_variation' AND 
+					p.`post_status` = 'publish' AND
+					(SELECT pm.`meta_value` FROM `xsite_postmeta` pm WHERE pm.`post_id` = p.`ID` AND pm.`meta_key` = '_stock_status' LIMIT 1) = 'instock' 
+			");
+			
+			foreach($childrens as $v)
+			{
+				$price = $wpdb->get_var("SELECT `meta_value` FROM `xsite_postmeta` WHERE `post_id` = '".$v->ID."' AND `meta_key` = '_price'");
+				
+				if(!isset($_price) || $price <= $_price)
+				{
+					$_price = $price;
+					$child_id = $v->ID;
+				}
+				
+				if(!isset($_max_price) || $price >= $_max_price)
+					$_max_price = $price;
+				
+				/*
+				if($_stock == 'outofstock')
+				{
+					if($wpdb->get_var("SELECT `meta_value` FROM `xsite_postmeta` WHERE `post_id` = '".$v->ID."' AND `meta_key` = '_stock_status'") == 'instock')
+						$_stock = 'instock';
+				}
+				*/
+				
+				$_stock = 'instock';
+				
+				if($_is_fresh_delivery == 'y')
+				{
+					if($wpdb->get_var("SELECT `meta_value` FROM `xsite_postmeta` WHERE `post_id` = '".$v->ID."' AND `meta_key` = '_fresh_delivery'") != 'y')
+						$_is_fresh_delivery = '';
+				}
+			}
+			
+			if($child_id)
+			{
+				$_regular_price = $wpdb->get_var("SELECT `meta_value` FROM `xsite_postmeta` WHERE `post_id` = '".$child_id."' AND `meta_key` = '_regular_price'");
+				$_sale_price = $wpdb->get_var("SELECT `meta_value` FROM `xsite_postmeta` WHERE `post_id` = '".$child_id."' AND `meta_key` = '_sale_price'");
+				$_size_sale = $wpdb->get_var("SELECT `meta_value` FROM `xsite_postmeta` WHERE `post_id` = '".$child_id."' AND `meta_key` = '_size_sale'");
+			}
+			
+			$result = [
+				'_regular_price' => $_regular_price,
+				'_price' => $_price,
+				'_sale_price' => $_sale_price,
+				'_size_sale' => $_size_sale,
+				'_stock_status' => $_stock,
+				'_fresh_delivery' => $_is_fresh_delivery,
+			];
+			
+			$is_parent_update = false;
+
+			// Batch-fetch existing meta rows for parent to avoid N+1 queries
+			$_parent_meta_keys = array_keys($result);
+			$big_data['taboo_price'][$parent_id] = $_parent_meta_keys;
+			$_parent_keys_in = implode("','", $_parent_meta_keys);
+			$_parent_rows = $wpdb->get_results("SELECT * FROM `xsite_postmeta` WHERE `post_id` = '".$parent_id."' AND `meta_key` IN ('".$_parent_keys_in."')");
+			$_parent_map = [];
+			foreach($_parent_rows as $_prow)
+				$_parent_map[$_prow->meta_key] = $_prow;
+
+			foreach($result as $k => $v)
+			{
+				if(isset($_parent_map[$k]))
+				{
+					$value = $_parent_map[$k];
+					if($value->meta_value != $v)
+					{
+						$wpdb->query("UPDATE `xsite_postmeta` SET `meta_value` = '".$v."' WHERE `meta_id` = '".$value->meta_id."'");
+						$is_parent_update = true;
+					}
+					
+					$wpdb->query("DELETE FROM `xsite_postmeta` WHERE `post_id` = '".$parent_id."' AND `meta_key` = '".$k."' AND `meta_id` <> '".$value->meta_id."'");
+				}
+				else
+				{
+					$wpdb->query("INSERT INTO `xsite_postmeta` SET `meta_value` = '".$v."', `post_id` = '".$parent_id."', `meta_key` = '".$k."'");
+					$is_parent_update = true;
+				}
+			}
+			
+			//$is_parent_update = true; // ЗАКОММЕНТИРОВАТЬ
+			
+			if($is_parent_update)
+			{
+				$arg = ['product_id' => $parent_id, 'price' => $result['_price'], 'regular_price' => $result['_regular_price'], 'sale_price' => $result['_sale_price']];
+				
+				add_price_history($arg);
+				
+				if($value = $wpdb->get_row("SELECT * FROM `xsite_wc_product_meta_lookup` WHERE `product_id` = '".$parent_id."'"))
+				{
+					$ar_set = [];
+					
+					if($value->stock_status != $result['_stock_status'])
+						$ar_set[] = "`stock_status` = '".$result['_stock_status']."'";
+					
+					if($value->min_price != $result['_price'])
+						$ar_set[] = "`min_price` = '".$result['_price']."'";
+					
+					if($value->max_price != $result['_price'])
+						$ar_set[] = "`max_price` = '".$_max_price."'";
+					
+					if(count($ar_set))
+						$wpdb->query("UPDATE `xsite_wc_product_meta_lookup` SET ".implode(", ", $ar_set)." WHERE `product_id` = '".$parent_id."'");
+				}
+			}
+		}
+	}
+	
+	xs_clear_cache(false);
+	
+	return $price;
+}
+
+
+// Получаем наименование группы
+
+function get_store_group_name($group_id)
+{
+	global $big_data;
+	
+	return str_replace(
+		[" группа", "Без наценки"],
+		["&nbsp;гр", "б/н"], 
+		$big_data['store_groups'][$group_id]
+	);
+}
+
+
+// Запрещаем стандартное обновление цен через админку
+
+add_filter('update_post_metadata', 'xs_taboo_price', 0, 5);
+
+function xs_taboo_price($arg, $post_id, $meta_key, $meta_value, $prev_value)
+{
+	global $big_data;
+	
+	if(isset($big_data['taboo_price'][$post_id]) && in_array($meta_key, $big_data['taboo_price'][$post_id]))
+		return 1;
+}
+
+
+function get_set_status_html($post)
+{
+	return is_user_logged_in()
+		? '<div class="set_product_status set_product_status--'.$post->post_status.'">
+				<div class="set_product_status__current">'.get_post_status_object($post->post_status)->label.'</div>
+				<div class="set_product_status__set" data-product_id="'.$post->ID.'">'.($post->post_status != 'publish' ? 'опубликовать' : 'сделать черновиком').'</div>
+			</div>'
+		: "";
+}
+
+
+function get_copy_links_html($post)
+{
+	if(!is_user_logged_in())
+		return "";
+	else
+	{
+		global $big_data;
+		
+		if(!isset($big_data['sizes']))
+		{
+			$sizes = get_terms(array(
+				'taxonomy'		=> [], //['pa_kolichestvo', 'pa_razmer', 'pa_vysota'],
+				'count'			=> false,
+				'hide_empty'    => false,
+			));
+			
+			foreach($sizes as $v)
+				$big_data['sizes'][$v->slug] = $v;
+		}
+						
+		$product = wc_get_product($post->ID);
+		
+		$ar_copy_all = [$post->post_title];
+		
+		if($product->product_type == "variable")
+		{
+			if($available_variations = $product->get_available_variations())
+			{
+				foreach($available_variations as $k => $v)
+				{
+					$variation_id = $v['variation_id'];
+					$variable_product = new WC_Product_Variation($variation_id);
+					
+					if($price = $variable_product->get_price()) 
+					{
+						if(get_post_meta($variation_id, '_stock_status', true) == 'outofstock')
+							continue;
+						
+						foreach($v['attributes'] as $_v)
+						{
+							$attr_code = $_v;
+							break;
+						}
+						
+						//$is_disabled = get_post_meta($variation_id, 'is_disabled', true) == 'yes';
+						
+						$regular_price = (int)$variable_product->get_regular_price();
+						
+						$percent = $regular_price > $price
+							? (($p = round(100 - ($price / $regular_price * 100))) >= 5 ? $p."%" : 0)
+							: 0;				
+						
+						$ar_copy_all[] = strip_tags($big_data['sizes'][$attr_code]->name." - ".str_replace(["&nbsp;", "&#8381;"], [" ", "₽"], wc_price($price)).($percent ? " (без скидки ".str_replace(["&nbsp;", "&#8381;"], [" ", "₽"], wc_price($regular_price)).")" : ""));
+					}
+				}
+			}
+		}
+		
+		return '<div class="xs_copy_text__container">
+				<div class="xs_copy_text xs_copy_text--name" title="Скопировать название товара" onclick="xs_copy(\''.htmlspecialchars($post->post_title).'\')">'.get_svg('copy-name', "", "text").'</div>
+				<div class="xs_copy_text xs_copy_text--link" title="Скопировать ссылку на товар" onclick="xs_copy(\''.get_permalink($post->ID).'\')">'.get_svg('copy-link', "", "text").'</div>
+				<div class="xs_copy_text xs_copy_text--namelink" title="Скопировать название и ссылку на товар" onclick="xs_copy(\''.htmlspecialchars($post->post_title).' - '.get_permalink($post->ID).'\')">'.get_svg('copy-namelink', "", "text").'</div>
+				<div class="xs_copy_text xs_copy_text--all" title="Скопировать название и вариации с ценами" onclick="xs_copy(\''.htmlspecialchars(implode("\\n", $ar_copy_all)).'\')">'.get_svg('copy-all', "", "text").'</div>
+			</div>';
+	}
+}
+
+// Получаем состав букета
+
+function get_structure_for_product($product_id, $show_admin = true)
+{
+	global $wpdb;
+	
+	$set_status_html = $show_admin
+		? get_set_status_html($post)
+		: "";
+		
+	$parent_id = (int)$wpdb->get_var("SELECT `post_parent` FROM `xsite_posts` WHERE `ID` = '".$product_id."'");
+	$post = $wpdb->get_row("SELECT * FROM `xsite_posts` WHERE `ID` = '".($parent_id ? $parent_id : $product_id)."'");
+	
+	$copy_links_html = $show_admin
+		? get_copy_links_html($post)
+		: "";
+	
+	if(!$components = get_store_components_product($product_id, true))
+		return $set_status_html.$copy_links_html;
+	
+	foreach($components as $k => $v)
+	{
+		if($ar_parents_categories = get_store_categoriy_parents($v->category_id))
+		{
+			foreach($ar_parents_categories as $_v)
+			{
+				if($_v->parent_id == 0)
+				{
+					$components[$k]->category_id = $_v->id;
+					$components[$k]->sort = $_v->sort;
+					
+					break;
+				}
+			}
+		}
+	}
+	
+	uasort($components, function($a, $b)
+	{
+		return ($a->sort > $b->sort);
+	});
+
+	$result = "";
+
+	if($show_admin)
+	{
+		$is_admin = is_user_logged_in();
+		
+		if($is_admin)
+		{
+			$result .= '<p class="xs_admin_structure_product__head">
+				<span class="xs_admin_structure_product__head-title">Компоненты:</span>
+				<span class="xs_admin_structure_product__head-ms" data-id="'.$product_id.'" data-step="1">
+					<span>Мой склад</span>
+				</span>
+			</p>';
+			
+			$ar_items = [];
+			$purchase_price = 0;
+			$total_price = 0;
+			
+			foreach($components as $v)
+			{
+				if(isset($preview_category) && $preview_category != $v->category_id)
+					$ar_items[] = '<div class="xs_admin_structure_product__delimiter"></div>';
+				
+				$ar_items[] = '<div class="xs_admin_structure_product__item" data-category_id="'.$v->category_id.'">
+					<a href="/wp-admin/admin.php?page=store&section=detail&id='.$v->component_id.'" target="_blank" class="xs_admin_structure_product__item-name">'.$v->name.'</a>
+					<div class="xs_admin_structure_product__item-quantity">'.$v->quantity.'&nbsp;шт</div>
+					<div class="xs_admin_structure_product__item-price">по '.$v->price.'&nbsp;₽</div>
+					<div class="xs_admin_structure_product__item-total">('.($v->price * $v->quantity).'&nbsp;₽)</div>
+				</div>';
+				
+				if(count($v->ms_components))
+				{
+					$ar_items[] = '<div class="xs_admin_structure_product__ms-items">';
+					
+					foreach($v->ms_components as $_v)
+					{
+						$quantity_status = 'not_found';
+						
+						if($_v['quantity'] >= $v->quantity)
+							$quantity_status = 'instock';
+						elseif($_v['quantity'] > 0)
+							$quantity_status = 'outofstock';
+						
+						$ar_items[] = '<div class="xs_admin_structure_product__ms-item '.$quantity_status.'">
+							<div class="xs_admin_structure_product__ms-item-name">'.$_v['name'].'</div>
+							<div class="xs_admin_structure_product__ms-item-days">'.$_v['days'].'&nbsp;дн</div>
+							<div class="xs_admin_structure_product__ms-item-quantity">'.$_v['quantity'].'&nbsp;шт</div>
+							<div class="xs_admin_structure_product__ms-item-price">'.$_v['price'].'&nbsp;₽</div>
+						</div>';
+					}
+					
+					$ar_items[] = '</div>';
+				}
+				
+				$preview_category = $v->category_id;
+				
+				$purchase_price = ($v->purchase_price > 0)
+					? $purchase_price + ($v->purchase_price * $v->quantity)
+					: $purchase_price + ($v->original_price * $v->quantity);
+					
+				$total_price = $total_price + ($v->price * $v->quantity);
+			}
+			
+			$ar_items[] = '<div class="xs_admin_structure_product__delimiter"></div>';
+			
+			$result .= '<div class="xs_admin_structure_product">
+				'.implode("", $ar_items).'
+				<!--p>Маржа: '.wc_price($total_price - $purchase_price).'</p-->
+			</div>
+			<a href="/wp-content/themes/xsiteshop/load/xs_form_set_structure.php?product_id='.$product_id.'" data-type="ajax" class="btn fancybox">Изменить состав</a>
+			&nbsp;&nbsp;<a href="/wp-admin/admin.php?page=calculate&product_id='.$product_id.'" target="_blank" class="btn btn--empty">Калькулятор</a>'
+			.$set_status_html.$copy_links_html.'
+			<p>&nbsp;</p>';
+		}
+	}
+
+	if(get_post_meta(($parent_id > 0 ? $parent_id : $product_id), "hide_structure", true) != 'y')
+	{
+		$ar_items = [];
+		
+		foreach($components as $v)
+		{
+			if($v->show_in_product == 'y')
+			{
+				if(!empty($v->name_in_product))
+					$name = $v->name_in_product;
+				elseif(!empty($v->name_for_user))
+					$name = $v->name_for_user;
+				else
+					$name = $v->name;
+				
+				if($v->hide_quantity_in_product == 'y')
+					$v->quantity = 0;
+				
+				$ar_items[$name] = isset($ar_items[$name])
+					? $v->quantity + $ar_items[$name] 
+					: $v->quantity;
+			}
+		}
+		
+		if(count($ar_items))
+		{
+			$_ar_items = [];
+			
+			foreach($ar_items as $k => $v)
+				$_ar_items[] = $k.($v > 0 ? " – ".$v." шт" : "");
+		
+			$result .= "<p>Состав: ".implode(", ", $_ar_items).".</p>";
+		}
+	}
+	
+	return $result;
+}
+
+
+// Актуализируем описание товара, добавляем состав при необходимости
+
+function insert_structure_in_content($post_content, $structure_html)
+{
+	$unique_start = '<div class="_system_structure_text">';
+	$unique_end = '</div>';
+	
+	$_post_content = $post_content;
+	
+	preg_match('/'.preg_quote($unique_start,'/').'(.*)'.preg_quote($unique_end, '/').'/Us', $post_content, $match);
+	
+	if(empty($structure_html))
+		$_post_content = str_replace($match[1], '', $post_content);
+	else
+	{
+		if(!empty($match[1]))
+		{
+			if(trim(strip_tags($match[1])) != trim(strip_tags($structure_html)))
+				$_post_content = str_replace($match[1], $structure_html, $post_content);
+		}
+		else
+			$_post_content = trim($unique_start.$structure_html.$unique_end." ".$post_content);
+	}
+
+	return trim($_post_content);
+}
+
+function actual_product_content($post)
+{
+	global $wpdb;
+	
+	$is_set = false;
+	
+	if(is_numeric($post))
+		$post = $wpdb->get_row("SELECT * FROM `xsite_posts` WHERE `ID` = '".$post."' AND `post_type` = 'product'");
+	
+	if($post->post_parent == 0)
+	{
+		$variations = $wpdb->get_results("SELECT * FROM `xsite_posts` WHERE `post_parent` = '".$post->ID."' AND `post_type` = 'product_variation'");
+		
+		if($variations)
+		{
+			foreach($variations as $variation)
+			{
+				$structure_html = get_structure_for_product($variation->ID, false);
+				$post_content = get_post_meta($variation->ID, '_variation_description', true);
+				
+				$_post_content = insert_structure_in_content($post->post_content, '');
+				$_post_content = insert_structure_in_content($_post_content, $structure_html);
+				
+				if($_post_content != $post_content)
+				{
+					update_post_meta($variation->ID, '_variation_description', $_post_content);
+					$is_set = true;
+				}
+			}
+		}
+	}
+	
+	$structure_html = get_structure_for_product($post->ID, false);
+	$_post_content = insert_structure_in_content($post->post_content, $structure_html);
+	
+	if($_post_content != $post->post_content)
+		$is_set = true;
+
+	if($is_set)
+	{
+		$my_post = [
+			'ID' => $post->ID,
+			'post_content' => $_post_content,
+		];
+
+		wp_update_post(wp_slash($my_post));
+	}
+}
+
+
+// Выводим кнопку калькулятора в админ бар
+
+function wp_admin_bar_new_link()
+{
+	global $wp_admin_bar;
+	
+	$wp_admin_bar->add_menu(array(
+		'id'    => 'wp-admin-bar-calc',
+		'title' => __('&nbsp;Калькулятор&nbsp;'),
+		'href'  => '/wp-admin/admin.php?page=calculate',
+	));
+}
+
+add_action('wp_before_admin_bar_render', 'wp_admin_bar_new_link');
+
+
+// Создаём запись в итории изменения цены
+
+function add_price_history($arg = [])
+{
+	global $wpdb, $big_data;
+	
+	if(!isset($arg['product_id']))
+		return false;
+	
+	$wpdb->query("
+		INSERT INTO
+			`xsite_price_history`
+		SET
+			`date` = NOW(),
+			`product_id` = '".$arg['product_id']."',
+			`price` = '".$arg['price']."',
+			`regular_price` = '".$arg['regular_price']."',
+			`sale_price` = '".$arg['sale_price']."',
+			`user_id` = '".(int)$big_data['current_user']->ID."',
+			`site` = '53flowers'
+	");
+	
+	return $wpdb->insert_id;
+}
+
+
+// Получаем историю изменения цен для товара
+
+function get_price_history($product_id = 0)
+{
+	global $wpdb;
+	
+	if(!$product_id)
+		return false;
+	
+	return $wpdb->get_results("
+		SELECT
+			*
+		FROM
+			`xsite_price_history`
+		WHERE
+			`product_id` = '".$product_id."' AND
+			`site` = '53flowers'
+		ORDER BY 
+			`date` DESC
+	");
+}
+
+
+// Очистка истории изменения цен для товара
+
+function clear_price_history()
+{
+	global $wpdb;
+	
+	return $wpdb->query("
+		DELETE FROM
+			`xsite_price_history`
+		WHERE
+			`date` < '".date('Y-m-d 00:00:00', (strtotime("now") - (86400*7)))."'
+	");
+}
+
+
+// Увеличиваем количество вариаций, выводимых на одной странице в админке
+
+function xs_admin_meta_boxes_variations_per_page($per_page) 
+{
+    return 999;
+}
+
+add_filter('woocommerce_admin_meta_boxes_variations_per_page', 'xs_admin_meta_boxes_variations_per_page', 10, 2);
+
+
+// Создаём группу компонентов
+
+function add_group_components($arg = [])
+{
+	global $wpdb, $big_data;
+	
+	if(!isset($arg['name']) || empty($arg['name']))
+	{
+		return [
+			'status' => 'error',
+			'message' => "Не заполнено обязательно поле Название"
+		];
+	}
+	
+	$wpdb->query("
+		INSERT INTO
+			`xsite_store_groups`
+		SET
+			`name` = '".$wpdb->_real_escape($arg['name'])."',
+			`sort` = '".(isset($arg['sort']) && is_numeric($arg['sort']) ? $arg['sort'] : 0)."'
+	");
+	
+	if(!($insert_id = $wpdb->insert_id))
+	{
+		return [
+			'status' => 'error',
+			'message' => "Ошибка при создании группы"
+		];
+	}
+	
+	return [
+		'status' => 'good',
+		'message' => "Группа компонентов добавлена",
+		'insert_id' => $insert_id
+	];
+}
+
+
+// Получаем группу компонентов
+
+function get_group_components($id)
+{
+	global $wpdb, $big_data;
+	
+	if(!is_numeric($id) || $id == 0)
+		return false;
+	
+	$row = $wpdb->get_row($wpdb->prepare("
+		SELECT 
+			* 
+		FROM 
+			`xsite_store_groups`
+		WHERE
+			`id` = %d
+	", $id));
+	
+	if(!$row)
+		return false;
+	
+	$row->components = [];
+	
+	$db_components = $wpdb->get_results($wpdb->prepare("
+		SELECT 
+			c.* 
+		FROM 
+			`xsite_store_components_to_groups` cg
+		INNER JOIN `xsite_store_components` c ON c.`id` = cg.`component_id`
+		WHERE
+		cg.`group_id` = %d
+	", $id));
+	
+	if($db_components && is_array($db_components))
+		foreach($db_components as $v)
+			$row->components[$v->id] = $v;
+			
+	return $row;
+}
+
+
+// Редактируем группу компонентов
+
+function edit_group_components($arg)
+{
+	global $wpdb, $big_data;
+	
+	if(!isset($arg['name']) || empty($arg['name']))
+	{
+		return [
+			'status' => 'error',
+			'message' => "Не заполнено обязательно поле Название"
+		];
+	}
+	
+	if(!isset($arg['id']) || !($row = get_group_components($arg['id'])))
+	{
+		return [
+			'status' => 'error',
+			'message' => "Группа компонентов не найдена"
+		];
+	}
+	
+	$wpdb->query("
+		UPDATE
+			`xsite_store_groups`
+		SET
+			`name` = '".$wpdb->_real_escape($arg['name'])."',
+			`sort` = '".(isset($arg['sort']) && is_numeric($arg['sort']) ? $arg['sort'] : 0)."'
+		WHERE
+			`id` = '".$row->id."'
+	");
+	
+	return [
+		'status' => 'good',
+		'message' => "Группа компонентов отредактирована",
+	];
+}
+
+
+// Удаление группы компонентов
+
+function del_group_components($group_id)
+{
+	global $wpdb, $big_data;
+	
+	if(!($row = get_group_components($group_id)))
+	{
+		return [
+			'status' => 'error',
+			'message' => "Группа компонентов не найдена"
+		];
+	}
+	
+	$wpdb->query("
+		DELETE
+			FROM `xsite_store_groups`
+		WHERE
+			`id` = '".$row->id."'
+	");
+	
+	$wpdb->query("
+		DELETE
+			FROM `xsite_store_components_to_groups`
+		WHERE
+			`group_id` = '".$row->id."'
+	");
+	
+	return [
+		'status' => 'good',
+		'message' => "Группа компонентов удалена",
+	];
+}
+
+
+// Добавляем компоненты в группу
+
+function add_components_to_group($arg)
+{
+	global $wpdb, $big_data;
+	
+	if(!isset($arg['components']) || !is_array($arg['components']) || count($arg['components']) == 0)
+	{
+		return [
+			'status' => 'error',
+			'message' => "Не выбраны компоненты для добавления в группу"
+		];
+	}
+	
+	if(!isset($arg['group_id']) || !($row = get_group_components($arg['group_id'])))
+	{
+		return [
+			'status' => 'error',
+			'message' => "Группа компонентов не найдена"
+		];
+	}
+	
+	foreach($arg['components'] as $k => $v)
+	{
+		$wpdb->query("
+			DELETE 
+				FROM `xsite_store_components_to_groups`
+			WHERE
+				`component_id` = '".$k."'
+		");
+		
+		$wpdb->query("
+			INSERT
+				INTO `xsite_store_components_to_groups`
+			SET
+				`component_id` = '".$k."',
+				`group_id` = '".$arg['group_id']."'
+		");
+	}
+	
+	return [
+		'status' => 'good',
+		'message' => "Компоненты добавлены в группу",
+	];
+}
+
+
+// Удаляем компонент из группы
+
+function del_components_to_group($arg)
+{
+	global $wpdb, $big_data;
+	
+	if(!isset($arg['component_id']) || empty($arg['component_id']))
+	{
+		return [
+			'status' => 'error',
+			'message' => "Не выбраны компоненты для удаления из группы"
+		];
+	}
+	
+	if(!isset($arg['group_id']) || !($row = get_group_components($arg['group_id'])))
+	{
+		return [
+			'status' => 'error',
+			'message' => "Группа компонентов не найдена"
+		];
+	}
+	
+	if(isset($row->components[$arg['component_id']]))
+	{
+		$wpdb->query("
+			DELETE 
+				FROM `xsite_store_components_to_groups`
+			WHERE
+				`component_id` = '".$arg['component_id']."' AND
+				`group_id` = '".$arg['group_id']."'
+		");
+	}
+	
+	return [
+		'status' => 'good',
+		'message' => "Компонент удален",
+	];
+}
+
+
+// Удаляем все компонент из группы
+
+function del_all_components_to_group($group_id)
+{
+	global $wpdb, $big_data;
+	
+	if(!($row = get_group_components($group_id)))
+	{
+		return [
+			'status' => 'error',
+			'message' => "Группа компонентов не найдена"
+		];
+	}
+	
+	$wpdb->query("
+		DELETE 
+			FROM `xsite_store_components_to_groups`
+		WHERE
+			`group_id` = '".$group_id."'
+	");
+	
+	return [
+		'status' => 'good',
+		'message' => "Компоненты очищены",
+	];
+}
+
+
+// Событие при создании нового компонента
+
+function component_create_action($component_id)
+{
+	global $wpdb;
+	
+	if(!($component = $wpdb->get_row("SELECT * FROM `xsite_store_components` WHERE `id` = '".$component_id."'")))
+		return false;
+			
+	if(!class_exists('bitrix24'))
+		include $_SERVER['DOCUMENT_ROOT'].'/wp-content/themes/xsiteshop/include/class/bitrix24.php';
+	
+	$b24 = new bitrix24;
+	
+	$user_id = 5593;
+	
+	return $b24->add_task([
+		'TITLE' => "Создан новый компонент «".$component->name."»",
+		'DEADLINE' => date('Y-m-d H:i:s', strtotime('now') + 86400 + (3600 * 3)),
+		'DESCRIPTION' => get_bloginfo('url')."/wp-admin/admin.php?page=store&section=detail&id=".$component->id,
+		'CREATED_BY' => $user_id,
+		'FORKED_BY_TEMPLATE_ID' => '',
+		'STATUS_ID' => 'NEW',
+		'GROUP_ID' => 89,
+	], $user_id);
+}
+
+
+// Загружаем изображение с МС
+
+function update_image_component_from_ms($ar_ms_image_ids)
+{
+	if(empty($ar_ms_image_ids))
+		return false;
+	
+	if(!is_array($ar_ms_image_ids))
+		$ar_ms_image_ids = [$ar_ms_image_ids];
+	
+	if(count($ar_ms_image_ids) == 0)
+		return false;
+
+	if(!class_exists('MoySklad'))
+		include $_SERVER['DOCUMENT_ROOT'].'/moysklad/class.php';
+		
+	global $wpdb, $big_data;
+	
+	$MoySklad = new MoySklad;
+	$moysklad_assortment = $MoySklad->get_assortment(array_unique($ar_ms_image_ids));
+
+	if(is_array($moysklad_assortment))
+	{
+		foreach($moysklad_assortment as $v)
+		{
+			$image = "";
+			
+			if(isset($v['images']) && !empty($v['images']))
+			{
+				if($ms_image = $MoySklad->get_image($v['images']))
+				{
+					$path = $_SERVER['DOCUMENT_ROOT'].$big_data['component_image_path'].$ms_image['name'];
+			
+					if(!file_exists($path))
+						file_put_contents($path, file_get_contents($ms_image['url']));
+					
+					$image = $ms_image['name'];
+				}
+				
+				if(count($ar_ms_image_ids) > 1)
+					usleep(200000);
+			}
+			
+			$wpdb->query("
+				UPDATE
+					`xsite_store_components` 
+				SET
+					`image` = '".$image."'
+				WHERE 
+					`ms_image_id` = '".$v['code']."'
+			");
+		}
+	}
+
+}

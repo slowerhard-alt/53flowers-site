@@ -1,0 +1,1065 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Калькулятор переезда</title>
+    <script src="//api.bitrix24.com/api/v1/"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            font-size: 14px;
+            background: #f5f5f5;
+        }
+        
+        .header {
+            background: #fff;
+            padding: 15px 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .header h1 {
+            font-size: 20px;
+            margin-bottom: 5px;
+            color: #333;
+        }
+        
+        .deal-info {
+            color: #666;
+            font-size: 13px;
+        }
+        
+        .save-indicator {
+            display: inline-block;
+            margin-left: 10px;
+            padding: 3px 8px;
+            background: #28a745;
+            color: #fff;
+            border-radius: 3px;
+            font-size: 11px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        .save-indicator.show {
+            opacity: 1;
+        }
+        
+        .tabs {
+            display: flex;
+            background: #fff;
+            border-bottom: 2px solid #e0e0e0;
+            overflow-x: auto;
+            padding: 0 10px;
+        }
+        
+        .tab {
+            padding: 12px 20px;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            color: #666;
+            white-space: nowrap;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        
+        .tab:hover {
+            background: #f5f5f5;
+            color: #333;
+        }
+        
+        .tab.active {
+            border-bottom-color: #0d6efd;
+            color: #0d6efd;
+        }
+        
+        .tab-content {
+            display: none;
+            padding: 20px;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .section {
+            background: #fff;
+            padding: 20px;
+            border-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #0d6efd;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+        }
+        
+        th {
+            background: #f8f9fa;
+            padding: 10px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 12px;
+            border: 1px solid #dee2e6;
+        }
+        
+        td {
+            padding: 10px;
+            border: 1px solid #dee2e6;
+            font-size: 13px;
+        }
+        
+        input[type="number"] {
+            width: 100%;
+            padding: 6px 8px;
+            border: 1px solid #ced4da;
+            border-radius: 3px;
+            font-size: 13px;
+        }
+        
+        select {
+            width: 100%;
+            padding: 6px 8px;
+            border: 1px solid #ced4da;
+            border-radius: 3px;
+            font-size: 13px;
+            background: #fff;
+        }
+        
+        .total-row {
+            background: #e7f3ff;
+            font-weight: 600;
+        }
+        
+        .result {
+            text-align: right;
+            font-weight: 600;
+            color: #0d6efd;
+        }
+        
+        .info-text {
+            font-size: 12px;
+            color: #666;
+            margin-top: 10px;
+            font-style: italic;
+            line-height: 1.6;
+        }
+        
+        .mkad-table {
+            margin-top: 15px;
+            font-size: 12px;
+        }
+        
+        .mkad-table td {
+            padding: 6px 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Калькулятор стоимости переезда</h1>
+        <div class="deal-info">
+            Сделка: <strong id="dealNumber">Загрузка...</strong>
+            <span id="saveIndicator" class="save-indicator">✓ Сохранено</span>
+        </div>
+    </div>
+
+    <div class="tabs">
+        <div class="tab active" onclick="switchTab('tab1')">Сотрудники</div>
+        <div class="tab" onclick="switchTab('tab2')">Сложные работы</div>
+        <div class="tab" onclick="switchTab('tab3')">Автотранспорт</div>
+        <div class="tab" onclick="switchTab('tab4')">Доставка упаковки</div>
+        <div class="tab" onclick="switchTab('tab5')">Упаковочные материалы</div>
+        <div class="tab" onclick="switchTab('tab6')">Такелажные работы</div>
+        <div class="tab" onclick="switchTab('tab7')">Демонтаж</div>
+        <div class="tab" onclick="switchTab('tab8')">Монтаж</div>
+        <div class="tab" onclick="switchTab('tab9')">Итого</div>
+    </div>
+
+    <!-- ВКЛАДКА 1: СОТРУДНИКИ -->
+    <div id="tab1" class="tab-content active">
+        <div class="section">
+            <div class="section-title">СОТРУДНИКИ</div>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th>Наименование ресурса</th>
+                        <th style="width: 100px;">Кол-во чел.</th>
+                        <th style="width: 120px;">Кол-во часов</th>
+                        <th style="width: 180px;">Смена</th>
+                        <th style="width: 130px;">Стоимость 1 ч.</th>
+                        <th style="width: 130px;">ИТОГО, руб.</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Комплекс работ по упаковке и маркировке имущества, сборке-разборке мебели, погрузочным работам</td>
+                        <td><input type="number" id="workers_count" min="0" value="0" oninput="calculate()"></td>
+                        <td><input type="number" id="workers_hours" min="0" step="0.5" value="0" oninput="calculate()"></td>
+                        <td>
+                            <select id="workers_shift" onchange="calculate()">
+                                <option value="1200">День (08:00-21:00) - 1200 руб/ч</option>
+                                <option value="1300">Вечер (21:00-08:00) - 1300 руб/ч</option>
+                                <option value="1100">Индивидуальный - 1100 руб/ч</option>
+                            </select>
+                        </td>
+                        <td id="workers_rate">1200</td>
+                        <td class="result" id="workers_total">0</td>
+                    </tr>
+                    <tr>
+                        <td>Разовая доплата за дорогу сотрудников за пределами МКАД</td>
+                        <td><input type="number" id="road_count" min="0" value="0" oninput="calculate()"></td>
+                        <td colspan="3" style="color: #666; font-size: 12px;">см. тарифную сетку</td>
+                        <td class="result" id="road_total">0</td>
+                    </tr>
+                    <tr>
+                        <td>Разовая доплата за работу сотрудников за пределами МКАД</td>
+                        <td><input type="number" id="work_mkad_count" min="0" value="0" oninput="calculate()"></td>
+                        <td colspan="3" style="color: #666; font-size: 12px;">автобус, электричка, такси</td>
+                        <td class="result" id="work_mkad_total">0</td>
+                    </tr>
+                    <tr>
+                        <td><strong>СТРАХОВКА</strong></td>
+                        <td><input type="number" id="insurance_count" min="0" value="0" oninput="calculate()"></td>
+                        <td colspan="3" style="color: #666; font-size: 12px;">автобус, электричка, такси</td>
+                        <td class="result" id="insurance_total">0</td>
+                    </tr>
+                    <tr class="total-row">
+                        <td colspan="5"><strong>ИТОГО:</strong></td>
+                        <td class="result" id="workers_section_total">0.00</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <table class="mkad-table">
+                <thead>
+                    <tr>
+                        <th colspan="3">Расстояние от МКАД и стоимость выезда</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Расстояние</strong></td>
+                        <td><strong>Стоимость выезда (клиенту)</strong></td>
+                        <td><strong>Муверам</strong></td>
+                    </tr>
+                    <tr>
+                        <td>от 10 до 25 км</td>
+                        <td>700 руб.</td>
+                        <td>450 ₽</td>
+                    </tr>
+                    <tr>
+                        <td>от 25 до 50 км</td>
+                        <td>900 руб.</td>
+                        <td>600 ₽</td>
+                    </tr>
+                    <tr>
+                        <td>от 50 до 100 км</td>
+                        <td>1000 руб.</td>
+                        <td>750 ₽</td>
+                    </tr>
+                    <tr>
+                        <td>свыше 100 км</td>
+                        <td>каждые 100 км по 700 руб.</td>
+                        <td>450 ₽</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="info-text">
+                <strong>СТРАХОВКА:</strong><br>
+                • от 1 до 20 000 руб. - 300 руб.<br>
+                • от 20 001 до 50 000 - 500 руб.<br>
+                • от 50 001 до 100 000 - 1000 руб.<br>
+                • от 100 001 до 150 000 - 1500 руб.<br>
+                • от 150 001 до 200 000 - 2000 руб.<br>
+                • от 200 001 - 250 000 - 2500 руб.<br>
+                • от 250 000 до 300 000 - 3000 руб.<br>
+                • от 300 000 и выше - по 5000 руб.
+            </div>
+        </div>
+    </div>
+
+    <!-- ВКЛАДКА 2: СЛОЖНЫЕ РАБОТЫ -->
+    <div id="tab2" class="tab-content">
+        <div class="section">
+            <div class="section-title">СЛОЖНЫЕ РАБОТЫ</div>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th>Область проведения работ и описание предметов</th>
+                        <th style="width: 120px;">Кол-во чел.</th>
+                        <th style="width: 150px;">Стоимость на 1 сотрудника, руб.</th>
+                        <th style="width: 130px;">ИТОГО, руб.</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Категория 1</td>
+                        <td><input type="number" id="complex1_count" min="0" value="0" oninput="calculate()"></td>
+                        <td>600.00</td>
+                        <td class="result" id="complex1_total">0.00</td>
+                    </tr>
+                    <tr>
+                        <td>Категория 2</td>
+                        <td><input type="number" id="complex2_count" min="0" value="0" oninput="calculate()"></td>
+                        <td>800.00</td>
+                        <td class="result" id="complex2_total">0.00</td>
+                    </tr>
+                    <tr>
+                        <td>Категория 3</td>
+                        <td><input type="number" id="complex3_count" min="0" value="0" oninput="calculate()"></td>
+                        <td>1,200.00</td>
+                        <td class="result" id="complex3_total">0.00</td>
+                    </tr>
+                    <tr>
+                        <td>Категория 4</td>
+                        <td><input type="number" id="complex4_count" min="0" value="0" oninput="calculate()"></td>
+                        <td>1,500.00</td>
+                        <td class="result" id="complex4_total">0.00</td>
+                    </tr>
+                    <tr class="total-row">
+                        <td colspan="3"><strong>ИТОГО:</strong></td>
+                        <td class="result" id="complex_section_total">0.00</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ВКЛАДКА 3: АВТОТРАНСПОРТ -->
+    <div id="tab3" class="tab-content">
+        <div class="section">
+            <div class="section-title">АВТОТРАНСПОРТ</div>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th>Наименование ресурса</th>
+                        <th style="width: 100px;">Мин. заказ</th>
+                        <th style="width: 80px;">Кол-во машин</th>
+                        <th style="width: 80px;">Кол-во часов</th>
+                        <th style="width: 100px;">Мин. часов</th>
+                        <th style="width: 100px;">Доп. час</th>
+                        <th style="width: 130px;">ИТОГО, руб.</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Мебельный фургон, 18-20 м³</td>
+                        <td>14,500</td>
+                        <td><input type="number" id="truck1_count" min="0" value="0" oninput="calculate()"></td>
+                        <td><input type="number" id="truck1_hours" min="0" step="0.5" value="5" oninput="calculate()"></td>
+                        <td>5</td>
+                        <td>2,200</td>
+                        <td class="result" id="truck1_total">0.00</td>
+                    </tr>
+                    <tr>
+                        <td>Мебельный фургон (фермер) 20 м³</td>
+                        <td>14,500</td>
+                        <td><input type="number" id="truck2_count" min="0" value="0" oninput="calculate()"></td>
+                        <td><input type="number" id="truck2_hours" min="0" step="0.5" value="5" oninput="calculate()"></td>
+                        <td>5</td>
+                        <td>2,200</td>
+                        <td class="result" id="truck2_total">0.00</td>
+                    </tr>
+                    <tr>
+                        <td>Мебельный фургон, 32-36 м³</td>
+                        <td>18,500</td>
+                        <td><input type="number" id="truck3_count" min="0" value="0" oninput="calculate()"></td>
+                        <td><input type="number" id="truck3_hours" min="0" step="0.5" value="6" oninput="calculate()"></td>
+                        <td>6</td>
+                        <td>2,900</td>
+                        <td class="result" id="truck3_total">0.00</td>
+                    </tr>
+                    <tr>
+                        <td>Мебельный фургон, 45 м³</td>
+                        <td>22,500</td>
+                        <td><input type="number" id="truck4_count" min="0" value="0" oninput="calculate()"></td>
+                        <td><input type="number" id="truck4_hours" min="0" step="0.5" value="6" oninput="calculate()"></td>
+                        <td>6</td>
+                        <td>3,300</td>
+                        <td class="result" id="truck4_total">0.00</td>
+                    </tr>
+                    <tr>
+                        <td>Километраж за пределы МКАД в одну сторону (100 руб/км)</td>
+                        <td colspan="2"><input type="number" id="truck_km" min="0" value="0" oninput="calculate()" placeholder="кол-во км"></td>
+                        <td colspan="3">100 руб/км</td>
+                        <td class="result" id="truck_km_total">0.00</td>
+                    </tr>
+                    <tr>
+                        <td>ГБ ИЛИ ТТК + 1ЧАС (2400 руб)</td>
+                        <td colspan="2"><input type="number" id="truck_gb" min="0" value="0" oninput="calculate()"></td>
+                        <td colspan="3">2,400 руб</td>
+                        <td class="result" id="truck_gb_total">0.00</td>
+                    </tr>
+                    <tr class="total-row">
+                        <td colspan="6"><strong>ИТОГО:</strong></td>
+                        <td class="result" id="truck_section_total">0.00</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ВКЛАДКА 4: ДОСТАВКА УПАКОВКИ -->
+    <div id="tab4" class="tab-content">
+        <div class="section">
+            <div class="section-title">ДОСТАВКА УПАКОВОЧНОГО МАТЕРИАЛА И/ИЛИ ИНСТРУМЕНТА</div>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th>Наименование ресурса</th>
+                        <th style="width: 150px;">Кол-во доставок / км</th>
+                        <th style="width: 150px;">Стоимость</th>
+                        <th style="width: 130px;">ИТОГО, руб.</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Доставка упаковочного материала и/или инструмента (включая предварительную доставку)</td>
+                        <td><input type="number" id="delivery_count" min="0" value="0" oninput="calculate()"></td>
+                        <td>3,000 руб</td>
+                        <td class="result" id="delivery_total">0.00</td>
+                    </tr>
+                    <tr>
+                        <td>Километраж за пределы МКАД в одну сторону</td>
+                        <td><input type="number" id="delivery_km" min="0" value="0" oninput="calculate()"></td>
+                        <td>50 руб/км</td>
+                        <td class="result" id="delivery_km_total">0.00</td>
+                    </tr>
+                    <tr class="total-row">
+                        <td colspan="3"><strong>ИТОГО:</strong></td>
+                        <td class="result" id="delivery_section_total">0.00</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ВКЛАДКА 5: УПАКОВОЧНЫЕ МАТЕРИАЛЫ -->
+    <div id="tab5" class="tab-content">
+        <div class="section">
+            <div class="section-title">УПАКОВОЧНЫЕ МАТЕРИАЛЫ</div>
+            
+            <div style="margin-bottom: 15px;">
+                <label style="font-weight: 600; margin-right: 10px;">Категория скидки:</label>
+                <select id="discount_category" onchange="calculate()" style="padding: 6px 10px; border: 1px solid #ced4da; border-radius: 3px;">
+                    <option value="1">Без скидки</option>
+                    <option value="0.95">Категория 1 (скидка 5%)</option>
+                    <option value="0.85">Категория 2 (скидка 15%)</option>
+                    <option value="0.75">Категория 3 (скидка 25%)</option>
+                </select>
+            </div>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th>Назначение</th>
+                        <th style="width: 100px;">Кол-во</th>
+                        <th style="width: 120px;">Цена за ед.</th>
+                        <th style="width: 130px;">ИТОГО, руб.</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Лист картона Гофролист (1200*800мм), шт.</td>
+                        <td><input type="number" id="mat1_qty" min="0" value="0" oninput="calculate()"></td>
+                        <td id="mat1_price">120.00</td>
+                        <td class="result" id="mat1_total">0.00</td>
+                    </tr>
+                    <tr>
+                        <td>Лист картона Гофролист (1250*2500 мм), шт.</td>
+                        <td><input type="number" id="mat2_qty" min="0" value="0" oninput="calculate()"></td>
+                        <td id="mat2_price">360.00</td>
+                        <td class="result" id="mat2_total">0.00</td>
+                    </tr>
+                    <tr>
+                        <td>Стрейч пленка 23 мкрн. 1 кг. (стрейч), рул.</td>
+                        <td><input type="number" id="mat3_qty" min="0" value="0" oninput="calculate()"></td>
+                        <td id="mat3_price">800.00</td>
+                        <td class="result" id="mat3_total">0.00</td>
+                    </tr>
+                    <tr>
+                        <td>Пленка п/э, воздушно-пузырчатая, трёхслойная, 25 м²</td>
+                        <td><input type="number" id="mat4_qty" min="0" value="0" oninput="calculate()"></td>
+                        <td id="mat4_price">1,375.00</td>
+                        <td class="result" id="mat4_total">0.00</td>
+                    </tr>
+                    <tr>
+                        <td>Скотч прозрачный 48мм*66м*45мкм, рул.</td>
+                        <td><input type="number" id="mat5_qty" min="0" value="0" oninput="calculate()"></td>
+                        <td id="mat5_price">180.00</td>
+                        <td class="result" id="mat5_total">0.00</td>
+                    </tr>
+                    <tr>
+                        <td>Скотч малярный (для маркировки)</td>
+                        <td><input type="number" id="mat6_qty" min="0" value="0" oninput="calculate()"></td>
+                        <td id="mat6_price">200.00</td>
+                        <td class="result" id="mat6_total">0.00</td>
+                    </tr>
+                    <tr>
+                        <td>Короб универсальный (630*320*340 мм.), шт.</td>
+                        <td><input type="number" id="mat7_qty" min="0" value="0" oninput="calculate()"></td>
+                        <td id="mat7_price">180.00</td>
+                        <td class="result" id="mat7_total">0.00</td>
+                    </tr>
+                    <tr>
+                        <td>Короб малый (380*380*260 мм.), шт.</td>
+                        <td><input type="number" id="mat8_qty" min="0" value="0" oninput="calculate()"></td>
+                        <td id="mat8_price">150.00</td>
+                        <td class="result" id="mat8_total">0.00</td>
+                    </tr>
+                    <tr>
+                        <td>Гардеробный короб под одежду бол. (1300*600*500 мм), шт.</td>
+                        <td><input type="number" id="mat9_qty" min="0" value="0" oninput="calculate()"></td>
+                        <td id="mat9_price">1,000.00</td>
+                        <td class="result" id="mat9_total">0.00</td>
+                    </tr>
+                    <tr>
+                        <td>Гардеробный короб под одежду мал. (1000*600*500 мм), шт.</td>
+                        <td><input type="number" id="mat10_qty" min="0" value="0" oninput="calculate()"></td>
+                        <td id="mat10_price">1,000.00</td>
+                        <td class="result" id="mat10_total">0.00</td>
+                    </tr>
+                    <tr>
+                        <td>Рулет ВПП</td>
+                        <td><input type="number" id="mat11_qty" min="0" value="0" oninput="calculate()"></td>
+                        <td id="mat11_price">385.00</td>
+                        <td class="result" id="mat11_total">0.00</td>
+                    </tr>
+                    <tr>
+                        <td>Гофрокороб архив А3, шт.</td>
+                        <td><input type="number" id="mat12_qty" min="0" value="0" oninput="calculate()"></td>
+                        <td id="mat12_price">175.00</td>
+                        <td class="result" id="mat12_total">0.00</td>
+                    </tr>
+                    <tr>
+                        <td>Профиль защитный синий 2000 мм.</td>
+                        <td><input type="number" id="mat13_qty" min="0" value="0" oninput="calculate()"></td>
+                        <td id="mat13_price">550.00</td>
+                        <td class="result" id="mat13_total">0.00</td>
+                    </tr>
+                    <tr>
+                        <td>Скотч бумажный, (50 мм. х 25 м.), рул.</td>
+                        <td><input type="number" id="mat14_qty" min="0" value="0" oninput="calculate()"></td>
+                        <td id="mat14_price">175.00</td>
+                        <td class="result" id="mat14_total">0.00</td>
+                    </tr>
+                    <tr>
+                        <td>"Чипсы", 100 литр</td>
+                        <td><input type="number" id="mat15_qty" min="0" value="0" oninput="calculate()"></td>
+                        <td id="mat15_price">1,000.00</td>
+                        <td class="result" id="mat15_total">0.00</td>
+                    </tr>
+                    <tr>
+                        <td>Патрон Е27 + лампа "времянка" (для освещения)</td>
+                        <td><input type="number" id="mat16_qty" min="0" value="0" oninput="calculate()"></td>
+                        <td id="mat16_price">340.00</td>
+                        <td class="result" id="mat16_total">0.00</td>
+                    </tr>
+                    <tr class="total-row">
+                        <td colspan="3"><strong>ИТОГО:</strong></td>
+                        <td class="result" id="materials_section_total">0.00</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ВКЛАДКА 6: ТАКЕЛАЖНЫЕ РАБОТЫ -->
+    <div id="tab6" class="tab-content">
+        <div class="section">
+            <div class="section-title">ТАКЕЛАЖНЫЕ РАБОТЫ</div>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th>Область проведения работ и описание предметов</th>
+                        <th style="width: 150px;">Общий вес, кг</th>
+                        <th style="width: 150px;">Стоимость за 1 кг</th>
+                        <th style="width: 130px;">ИТОГО, руб.</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Такелажные работы с предметами, весом от 70 до 400 кг</td>
+                        <td><input type="number" id="rigging_weight" min="0" value="0" oninput="calculate()"></td>
+                        <td>40 руб/кг</td>
+                        <td class="result" id="rigging_total">0.00</td>
+                    </tr>
+                    <tr class="total-row">
+                        <td colspan="3"><strong>ИТОГО:</strong></td>
+                        <td class="result" id="rigging_section_total">0.00</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ВКЛАДКА 7: ДЕМОНТАЖНЫЕ РАБОТЫ -->
+    <div id="tab7" class="tab-content">
+        <div class="section">
+            <div class="section-title">ДЕМОНТАЖНЫЕ РАБОТЫ</div>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th>Область проведения работ и описание предметов</th>
+                        <th style="width: 120px;">Кол-во шт.</th>
+                        <th style="width: 150px;">Стоимость на 1 един.</th>
+                        <th style="width: 130px;">ИТОГО, руб.</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Люстра/Светильник/Бра</td>
+                        <td><input type="number" id="demount1_qty" min="0" value="0" oninput="calculate()"></td>
+                        <td>900 руб</td>
+                        <td class="result" id="demount1_total">0.00</td>
+                    </tr>
+                    <tr>
+                        <td>Телевизор</td>
+                        <td><input type="number" id="demount2_qty" min="0" value="0" oninput="calculate()"></td>
+                        <td>900 руб</td>
+                        <td class="result" id="demount2_total">0.00</td>
+                    </tr>
+                    <tr>
+                        <td>Раковина/посудомоечная машина/стиральная машина</td>
+                        <td><input type="number" id="demount3_qty" min="0" value="0" oninput="calculate()"></td>
+                        <td>900 руб</td>
+                        <td class="result" id="demount3_total">0.00</td>
+                    </tr>
+                    <tr>
+                        <td>Варочная электро панель/духовой шкаф/кух.вытяжка</td>
+                        <td><input type="number" id="demount4_qty" min="0" value="0" oninput="calculate()"></td>
+                        <td>900 руб</td>
+                        <td class="result" id="demount4_total">0.00</td>
+                    </tr>
+                    <tr class="total-row">
+                        <td colspan="3"><strong>ИТОГО:</strong></td>
+                        <td class="result" id="demount_section_total">0.00</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ВКЛАДКА 8: МОНТАЖНЫЕ РАБОТЫ -->
+    <div id="tab8" class="tab-content">
+        <div class="section">
+            <div class="section-title">МОНТАЖНЫЕ РАБОТЫ</div>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th>Область проведения работ и описание предметов</th>
+                        <th style="width: 120px;">Кол-во шт.</th>
+                        <th style="width: 150px;">Стоимость на 1 един.</th>
+                        <th style="width: 130px;">ИТОГО, руб.</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Люстра/Светильник/Бра</td>
+                        <td><input type="number" id="mount1_qty" min="0" value="0" oninput="calculate()"></td>
+                        <td>1,500 руб</td>
+                        <td class="result" id="mount1_total">0.00</td>
+                    </tr>
+                    <tr>
+                        <td>Телевизор (если 4 сверления)</td>
+                        <td><input type="number" id="mount2_qty" min="0" value="0" oninput="calculate()"></td>
+                        <td>2,650 руб</td>
+                        <td class="result" id="mount2_total">0.00</td>
+                    </tr>
+                    <tr>
+                        <td>Раковина/посудомоечная машина/стиральная машина</td>
+                        <td><input type="number" id="mount3_qty" min="0" value="0" oninput="calculate()"></td>
+                        <td>1,000 руб</td>
+                        <td class="result" id="mount3_total">0.00</td>
+                    </tr>
+                    <tr>
+                        <td>Варочная электро панель/духовой шкаф/кух.вытяжка</td>
+                        <td><input type="number" id="mount4_qty" min="0" value="0" oninput="calculate()"></td>
+                        <td>1,000 руб</td>
+                        <td class="result" id="mount4_total">0.00</td>
+                    </tr>
+                    <tr>
+                        <td>Подключение времянки с установкой патрона</td>
+                        <td><input type="number" id="mount5_qty" min="0" value="0" oninput="calculate()"></td>
+                        <td>500 руб</td>
+                        <td class="result" id="mount5_total">0.00</td>
+                    </tr>
+                    <tr>
+                        <td>Количество сверлений с расходными материалами специалистов</td>
+                        <td><input type="number" id="mount6_qty" min="0" value="0" oninput="calculate()"></td>
+                        <td>250 руб</td>
+                        <td class="result" id="mount6_total">0.00</td>
+                    </tr>
+                    <tr>
+                        <td>Перфоратор (если есть вероятность использования)</td>
+                        <td><input type="number" id="mount7_qty" min="0" value="0" oninput="calculate()"></td>
+                        <td>1,000 руб</td>
+                        <td class="result" id="mount7_total">0.00</td>
+                    </tr>
+                    <tr class="total-row">
+                        <td colspan="3"><strong>ИТОГО:</strong></td>
+                        <td class="result" id="mount_section_total">0.00</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ВКЛАДКА 9: ИТОГО -->
+    <div id="tab9" class="tab-content">
+        <div class="section">
+            <div class="section-title">ИТОГОВАЯ СТОИМОСТЬ</div>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th>Раздел</th>
+                        <th style="width: 200px; text-align: right;">Стоимость, руб.</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Сотрудники</td>
+                        <td class="result" id="sum_workers">0.00</td>
+                    </tr>
+                    <tr>
+                        <td>Сложные работы</td>
+                        <td class="result" id="sum_complex">0.00</td>
+                    </tr>
+                    <tr>
+                        <td>Автотранспорт</td>
+                        <td class="result" id="sum_truck">0.00</td>
+                    </tr>
+                    <tr>
+                        <td>Доставка упаковки</td>
+                        <td class="result" id="sum_delivery">0.00</td>
+                    </tr>
+                    <tr>
+                        <td>Упаковочные материалы</td>
+                        <td class="result" id="sum_materials">0.00</td>
+                    </tr>
+                    <tr>
+                        <td>Такелажные работы</td>
+                        <td class="result" id="sum_rigging">0.00</td>
+                    </tr>
+                    <tr>
+                        <td>Демонтажные работы</td>
+                        <td class="result" id="sum_demount">0.00</td>
+                    </tr>
+                    <tr>
+                        <td>Монтажные работы</td>
+                        <td class="result" id="sum_mount">0.00</td>
+                    </tr>
+                    <tr class="total-row">
+                        <td><strong>ИТОГО:</strong></td>
+                        <td class="result" id="grand_total" style="font-size: 20px;">0.00</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // Базовые цены материалов (без скидки)
+        const materialPrices = [120, 360, 800, 1375, 180, 200, 180, 150, 1000, 1000, 385, 175, 550, 175, 1000, 340];
+        
+        // ID текущей сделки
+        let currentDealId = null;
+        
+        // Список всех полей для сохранения
+        const fields = [
+            'workers_count', 'workers_hours', 'workers_shift', 'road_count', 'work_mkad_count', 'insurance_count',
+            'complex1_count', 'complex2_count', 'complex3_count', 'complex4_count',
+            'truck1_count', 'truck1_hours', 'truck2_count', 'truck2_hours', 'truck3_count', 'truck3_hours',
+            'truck4_count', 'truck4_hours', 'truck_km', 'truck_gb',
+            'delivery_count', 'delivery_km',
+            'discount_category',
+            'mat1_qty', 'mat2_qty', 'mat3_qty', 'mat4_qty', 'mat5_qty', 'mat6_qty', 'mat7_qty', 'mat8_qty',
+            'mat9_qty', 'mat10_qty', 'mat11_qty', 'mat12_qty', 'mat13_qty', 'mat14_qty', 'mat15_qty', 'mat16_qty',
+            'rigging_weight',
+            'demount1_qty', 'demount2_qty', 'demount3_qty', 'demount4_qty',
+            'mount1_qty', 'mount2_qty', 'mount3_qty', 'mount4_qty', 'mount5_qty', 'mount6_qty', 'mount7_qty'
+        ];
+
+        // Переключение вкладок
+        function switchTab(tabId) {
+            const contents = document.querySelectorAll('.tab-content');
+            contents.forEach(c => c.classList.remove('active'));
+            
+            const tabs = document.querySelectorAll('.tab');
+            tabs.forEach(t => t.classList.remove('active'));
+            
+            document.getElementById(tabId).classList.add('active');
+            event.target.classList.add('active');
+            
+            setTimeout(() => BX24.fitWindow(), 100);
+        }
+
+        // Показать индикатор сохранения
+        function showSaveIndicator() {
+            const indicator = document.getElementById('saveIndicator');
+            indicator.classList.add('show');
+            setTimeout(() => {
+                indicator.classList.remove('show');
+            }, 2000);
+        }
+
+        // Сохранение данных в Битрикс24
+        function saveCalculatorData(grandTotal) {
+            if (!currentDealId) return;
+            
+            // Собрать все значения полей
+            const data = {};
+            fields.forEach(fieldId => {
+                const element = document.getElementById(fieldId);
+                if (element) {
+                    data[fieldId] = element.value;
+                }
+            });
+            
+            // Сохранить в поле сделки
+            BX24.callMethod("crm.deal.update", {
+                ID: currentDealId,
+                fields: {
+                    UF_CRM_CALC_DATA: JSON.stringify(data),
+                    UF_CRM_CALC_TOTAL: grandTotal
+                }
+            }, function(result) {
+                if (!result.error()) {
+                    showSaveIndicator();
+                } else {
+                    console.error('Ошибка сохранения:', result.error());
+                }
+            });
+        }
+
+        // Загрузка сохранённых данных
+        function loadCalculatorData(deal) {
+            if (deal.UF_CRM_CALC_DATA) {
+                try {
+                    const data = JSON.parse(deal.UF_CRM_CALC_DATA);
+                    
+                    // Восстановить все значения
+                    fields.forEach(fieldId => {
+                        const element = document.getElementById(fieldId);
+                        if (element && data[fieldId] !== undefined) {
+                            element.value = data[fieldId];
+                        }
+                    });
+                    
+                    // Пересчитать
+                    calculate();
+                } catch(e) {
+                    console.error('Ошибка загрузки данных:', e);
+                }
+            }
+        }
+
+        // Инициализация BX24 и получение номера сделки
+        BX24.init(function() {
+            BX24.fitWindow();
+            
+            var placementOptions = BX24.placement.info();
+            currentDealId = placementOptions.options.ID;
+            
+            BX24.callMethod("crm.deal.get", { ID: currentDealId }, function(result) {
+                if (!result.error()) {
+                    var deal = result.data();
+                    document.getElementById('dealNumber').innerText = deal.TITLE || 'ID: ' + currentDealId;
+                    
+                    // Загрузить сохранённые данные
+                    loadCalculatorData(deal);
+                } else {
+                    document.getElementById('dealNumber').innerText = 'Ошибка загрузки';
+                }
+            });
+        });
+
+        // Функция общего расчёта
+        function calculate() {
+            // СОТРУДНИКИ
+            const workersCount = parseFloat(document.getElementById('workers_count').value) || 0;
+            const workersHours = parseFloat(document.getElementById('workers_hours').value) || 0;
+            const workersRate = parseFloat(document.getElementById('workers_shift').value);
+            const workersTotal = workersCount * workersHours * workersRate;
+            
+            document.getElementById('workers_rate').innerText = workersRate.toLocaleString('ru-RU');
+            document.getElementById('workers_total').innerText = workersTotal.toLocaleString('ru-RU', {minimumFractionDigits: 2});
+            
+            const roadCount = parseFloat(document.getElementById('road_count').value) || 0;
+            const roadTotal = roadCount * 500;
+            document.getElementById('road_total').innerText = roadTotal.toLocaleString('ru-RU', {minimumFractionDigits: 2});
+            
+            const workMkadCount = parseFloat(document.getElementById('work_mkad_count').value) || 0;
+            const workMkadTotal = workMkadCount * 700;
+            document.getElementById('work_mkad_total').innerText = workMkadTotal.toLocaleString('ru-RU', {minimumFractionDigits: 2});
+            
+            const insuranceCount = parseFloat(document.getElementById('insurance_count').value) || 0;
+            const insuranceTotal = insuranceCount * 4000;
+            document.getElementById('insurance_total').innerText = insuranceTotal.toLocaleString('ru-RU', {minimumFractionDigits: 2});
+            
+            const workersSectionTotal = workersTotal + roadTotal + workMkadTotal + insuranceTotal;
+            document.getElementById('workers_section_total').innerText = workersSectionTotal.toLocaleString('ru-RU', {minimumFractionDigits: 2});
+            
+            // СЛОЖНЫЕ РАБОТЫ
+            const complex1 = (parseFloat(document.getElementById('complex1_count').value) || 0) * 600;
+            const complex2 = (parseFloat(document.getElementById('complex2_count').value) || 0) * 800;
+            const complex3 = (parseFloat(document.getElementById('complex3_count').value) || 0) * 1200;
+            const complex4 = (parseFloat(document.getElementById('complex4_count').value) || 0) * 1500;
+            
+            document.getElementById('complex1_total').innerText = complex1.toLocaleString('ru-RU', {minimumFractionDigits: 2});
+            document.getElementById('complex2_total').innerText = complex2.toLocaleString('ru-RU', {minimumFractionDigits: 2});
+            document.getElementById('complex3_total').innerText = complex3.toLocaleString('ru-RU', {minimumFractionDigits: 2});
+            document.getElementById('complex4_total').innerText = complex4.toLocaleString('ru-RU', {minimumFractionDigits: 2});
+            
+            const complexSectionTotal = complex1 + complex2 + complex3 + complex4;
+            document.getElementById('complex_section_total').innerText = complexSectionTotal.toLocaleString('ru-RU', {minimumFractionDigits: 2});
+            
+            // АВТОТРАНСПОРТ
+            const truck1Count = parseFloat(document.getElementById('truck1_count').value) || 0;
+            const truck1Hours = parseFloat(document.getElementById('truck1_hours').value) || 0;
+            const truck1Total = truck1Count * (truck1Hours <= 5 ? 14500 : 14500 + (truck1Hours - 5) * 2200);
+            
+            const truck2Count = parseFloat(document.getElementById('truck2_count').value) || 0;
+            const truck2Hours = parseFloat(document.getElementById('truck2_hours').value) || 0;
+            const truck2Total = truck2Count * (truck2Hours <= 5 ? 14500 : 14500 + (truck2Hours - 5) * 2200);
+            
+            const truck3Count = parseFloat(document.getElementById('truck3_count').value) || 0;
+            const truck3Hours = parseFloat(document.getElementById('truck3_hours').value) || 0;
+            const truck3Total = truck3Count * (truck3Hours <= 6 ? 18500 : 18500 + (truck3Hours - 6) * 2900);
+            
+            const truck4Count = parseFloat(document.getElementById('truck4_count').value) || 0;
+            const truck4Hours = parseFloat(document.getElementById('truck4_hours').value) || 0;
+            const truck4Total = truck4Count * (truck4Hours <= 6 ? 22500 : 22500 + (truck4Hours - 6) * 3300);
+            
+            const truckKm = (parseFloat(document.getElementById('truck_km').value) || 0) * 100;
+            const truckGb = (parseFloat(document.getElementById('truck_gb').value) || 0) * 2400;
+            
+            document.getElementById('truck1_total').innerText = truck1Total.toLocaleString('ru-RU', {minimumFractionDigits: 2});
+            document.getElementById('truck2_total').innerText = truck2Total.toLocaleString('ru-RU', {minimumFractionDigits: 2});
+            document.getElementById('truck3_total').innerText = truck3Total.toLocaleString('ru-RU', {minimumFractionDigits: 2});
+            document.getElementById('truck4_total').innerText = truck4Total.toLocaleString('ru-RU', {minimumFractionDigits: 2});
+            document.getElementById('truck_km_total').innerText = truckKm.toLocaleString('ru-RU', {minimumFractionDigits: 2});
+            document.getElementById('truck_gb_total').innerText = truckGb.toLocaleString('ru-RU', {minimumFractionDigits: 2});
+            
+            const truckSectionTotal = truck1Total + truck2Total + truck3Total + truck4Total + truckKm + truckGb;
+            document.getElementById('truck_section_total').innerText = truckSectionTotal.toLocaleString('ru-RU', {minimumFractionDigits: 2});
+            
+            // ДОСТАВКА
+            const deliveryCount = (parseFloat(document.getElementById('delivery_count').value) || 0) * 3000;
+            const deliveryKm = (parseFloat(document.getElementById('delivery_km').value) || 0) * 50;
+            
+            document.getElementById('delivery_total').innerText = deliveryCount.toLocaleString('ru-RU', {minimumFractionDigits: 2});
+            document.getElementById('delivery_km_total').innerText = deliveryKm.toLocaleString('ru-RU', {minimumFractionDigits: 2});
+            
+            const deliverySectionTotal = deliveryCount + deliveryKm;
+            document.getElementById('delivery_section_total').innerText = deliverySectionTotal.toLocaleString('ru-RU', {minimumFractionDigits: 2});
+            
+            // УПАКОВОЧНЫЕ МАТЕРИАЛЫ
+            const discount = parseFloat(document.getElementById('discount_category').value);
+            let materialsTotal = 0;
+            
+            for (let i = 1; i <= 16; i++) {
+                const qty = parseFloat(document.getElementById('mat' + i + '_qty').value) || 0;
+                const basePrice = materialPrices[i - 1];
+                const price = basePrice * discount;
+                const total = qty * price;
+                
+                document.getElementById('mat' + i + '_price').innerText = price.toLocaleString('ru-RU', {minimumFractionDigits: 2});
+                document.getElementById('mat' + i + '_total').innerText = total.toLocaleString('ru-RU', {minimumFractionDigits: 2});
+                
+                materialsTotal += total;
+            }
+            
+            document.getElementById('materials_section_total').innerText = materialsTotal.toLocaleString('ru-RU', {minimumFractionDigits: 2});
+            
+            // ТАКЕЛАЖНЫЕ РАБОТЫ
+            const riggingWeight = (parseFloat(document.getElementById('rigging_weight').value) || 0) * 40;
+            document.getElementById('rigging_total').innerText = riggingWeight.toLocaleString('ru-RU', {minimumFractionDigits: 2});
+            document.getElementById('rigging_section_total').innerText = riggingWeight.toLocaleString('ru-RU', {minimumFractionDigits: 2});
+            
+            // ДЕМОНТАЖНЫЕ РАБОТЫ
+            const demount1 = (parseFloat(document.getElementById('demount1_qty').value) || 0) * 900;
+            const demount2 = (parseFloat(document.getElementById('demount2_qty').value) || 0) * 900;
+            const demount3 = (parseFloat(document.getElementById('demount3_qty').value) || 0) * 900;
+            const demount4 = (parseFloat(document.getElementById('demount4_qty').value) || 0) * 900;
+            
+            document.getElementById('demount1_total').innerText = demount1.toLocaleString('ru-RU', {minimumFractionDigits: 2});
+            document.getElementById('demount2_total').innerText = demount2.toLocaleString('ru-RU', {minimumFractionDigits: 2});
+            document.getElementById('demount3_total').innerText = demount3.toLocaleString('ru-RU', {minimumFractionDigits: 2});
+            document.getElementById('demount4_total').innerText = demount4.toLocaleString('ru-RU', {minimumFractionDigits: 2});
+            
+            const demountSectionTotal = demount1 + demount2 + demount3 + demount4;
+            document.getElementById('demount_section_total').innerText = demountSectionTotal.toLocaleString('ru-RU', {minimumFractionDigits: 2});
+            
+            // МОНТАЖНЫЕ РАБОТЫ
+            const mount1 = (parseFloat(document.getElementById('mount1_qty').value) || 0) * 1500;
+            const mount2 = (parseFloat(document.getElementById('mount2_qty').value) || 0) * 2650;
+            const mount3 = (parseFloat(document.getElementById('mount3_qty').value) || 0) * 1000;
+            const mount4 = (parseFloat(document.getElementById('mount4_qty').value) || 0) * 1000;
+            const mount5 = (parseFloat(document.getElementById('mount5_qty').value) || 0) * 500;
+            const mount6 = (parseFloat(document.getElementById('mount6_qty').value) || 0) * 250;
+            const mount7 = (parseFloat(document.getElementById('mount7_qty').value) || 0) * 1000;
+            
+            document.getElementById('mount1_total').innerText = mount1.toLocaleString('ru-RU', {minimumFractionDigits: 2});
+            document.getElementById('mount2_total').innerText = mount2.toLocaleString('ru-RU', {minimumFractionDigits: 2});
+            document.getElementById('mount3_total').innerText = mount3.toLocaleString('ru-RU', {minimumFractionDigits: 2});
+            document.getElementById('mount4_total').innerText = mount4.toLocaleString('ru-RU', {minimumFractionDigits: 2});
+            document.getElementById('mount5_total').innerText = mount5.toLocaleString('ru-RU', {minimumFractionDigits: 2});
+            document.getElementById('mount6_total').innerText = mount6.toLocaleString('ru-RU', {minimumFractionDigits: 2});
+            document.getElementById('mount7_total').innerText = mount7.toLocaleString('ru-RU', {minimumFractionDigits: 2});
+            
+            const mountSectionTotal = mount1 + mount2 + mount3 + mount4 + mount5 + mount6 + mount7;
+            document.getElementById('mount_section_total').innerText = mountSectionTotal.toLocaleString('ru-RU', {minimumFractionDigits: 2});
+            
+            // ИТОГОВАЯ СУММА
+            document.getElementById('sum_workers').innerText = workersSectionTotal.toLocaleString('ru-RU', {minimumFractionDigits: 2});
+            document.getElementById('sum_complex').innerText = complexSectionTotal.toLocaleString('ru-RU', {minimumFractionDigits: 2});
+            document.getElementById('sum_truck').innerText = truckSectionTotal.toLocaleString('ru-RU', {minimumFractionDigits: 2});
+            document.getElementById('sum_delivery').innerText = deliverySectionTotal.toLocaleString('ru-RU', {minimumFractionDigits: 2});
+            document.getElementById('sum_materials').innerText = materialsTotal.toLocaleString('ru-RU', {minimumFractionDigits: 2});
+            document.getElementById('sum_rigging').innerText = riggingWeight.toLocaleString('ru-RU', {minimumFractionDigits: 2});
+            document.getElementById('sum_demount').innerText = demountSectionTotal.toLocaleString('ru-RU', {minimumFractionDigits: 2});
+            document.getElementById('sum_mount').innerText = mountSectionTotal.toLocaleString('ru-RU', {minimumFractionDigits: 2});
+            
+            const grandTotal = workersSectionTotal + complexSectionTotal + truckSectionTotal + deliverySectionTotal + 
+                             materialsTotal + riggingWeight + demountSectionTotal + mountSectionTotal;
+            
+            document.getElementById('grand_total').innerText = grandTotal.toLocaleString('ru-RU', {minimumFractionDigits: 2});
+            
+            // Автосохранение через 1 секунду после изменения
+            clearTimeout(window.saveTimeout);
+            window.saveTimeout = setTimeout(() => saveCalculatorData(grandTotal), 1000);
+        }
+        
+        // Первоначальный расчёт
+        calculate();
+    </script>
+</body>
+</html>

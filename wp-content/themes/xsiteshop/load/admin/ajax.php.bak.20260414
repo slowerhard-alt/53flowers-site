@@ -1,0 +1,169 @@
+<?
+include $_SERVER['DOCUMENT_ROOT'].'/wp-load.php';
+
+global $big_data, $wpdb;
+
+if(!current_user_can('administrator'))
+{
+	global $post, $page, $wp_query;
+	$wp_query->set_404();
+	header("HTTP/1.1 404 Not Found");
+	get_template_part('404');
+	die();
+}
+
+$action = xs_format($_REQUEST['action']);
+$ar_result = [];
+
+$post_data = isset($_POST['post_data']) && is_array($_POST['post_data'])
+	? xs_format($_POST['post_data'])
+	: [];
+
+$get_data = isset($_GET) && is_array($_GET)
+	? xs_format($_GET)
+	: [];
+
+
+// Создаём группу компонентов
+
+if($action == "group-add")
+{
+	$result = add_group_components($post_data);
+	
+	if($result['status'] == 'error')
+	{
+		ob_start();
+
+		message($result['message'], $result['status']);
+		xs_get_message();
+		
+		$code = ob_get_contents();
+		ob_end_clean();
+		
+		$ar_result['html'] = $code;
+	}
+	else
+	{
+		message($result['message'], $result['status']);
+		$ar_result['fancybox'] = "/wp-content/themes/xsiteshop/load/admin/modal/index.php?id=".$result['insert_id']."&modal=group-detail";
+	}
+}
+
+
+// Редактируем группу компонентов
+
+if($action == "group-edit")
+{
+	
+	if(isset($_POST['is_delete']) && $_POST['is_delete'] == 'y' && isset($post_data['id']) && !empty($post_data['id']))
+	{
+		$result = del_group_components($post_data['id']);
+		
+		if($result['status'] == 'good')
+		{
+			message($result['message'], $result['status']);
+			$ar_result['href'] = "/wp-admin/admin.php?page=store&section=group";
+		}
+		else
+		{
+			ob_start();
+
+			message($result['message'], $result['status']);
+			xs_get_message();
+			
+			$code = ob_get_contents();
+			ob_end_clean();
+			
+			$ar_result['html'] = $code;
+		}
+	}
+	else
+	{	
+		$result = edit_group_components($post_data);
+		
+		ob_start();
+
+		message($result['message'], $result['status']);
+		xs_get_message();
+		
+		$code = ob_get_contents();
+		ob_end_clean();
+		
+		$ar_result['html'] = $code;
+	}
+}
+
+
+// Добавляем компоненты в группу
+
+if($action == "group-components-add")
+{
+	$result = add_components_to_group($post_data);
+	
+	if($result['status'] == 'error')
+	{
+		ob_start();
+
+		message($result['message'], $result['status']);
+		xs_get_message();
+		
+		$code = ob_get_contents();
+		ob_end_clean();
+		
+		$ar_result['html'] = $code;
+	}
+	else
+	{
+		message($result['message'], $result['status']);
+		$ar_result['fancybox'] = "/wp-content/themes/xsiteshop/load/admin/modal/index.php?id=".$post_data['group_id']."&modal=group-detail";
+	}
+}
+
+
+// Удаляем компонент из группы
+
+if($action == "group-components-del")
+{
+	$ar_result = del_components_to_group($get_data);
+}
+
+
+// Удаляем все компонент из группы
+
+if($action == "group-components-del-all")
+{
+	$result = del_all_components_to_group($post_data['id']);
+	
+	if($result['status'] == 'error')
+	{
+		ob_start();
+
+		message($result['message'], $result['status']);
+		xs_get_message();
+		
+		$code = ob_get_contents();
+		ob_end_clean();
+		
+		$ar_result['html'] = $code;
+	}
+	else
+	{
+		message($result['message'], $result['status']);
+		$ar_result['fancybox'] = "/wp-content/themes/xsiteshop/load/admin/modal/index.php?id=".$post_data['id']."&modal=group-detail";
+	}
+}
+
+
+if(count($ar_result) == 0)
+{
+	global $post, $page, $wp_query;
+	$wp_query->set_404();
+	header("HTTP/1.1 404 Not Found");
+	get_template_part('404');
+	die();
+}
+else
+{
+	header("Content-type: application/json; charset=utf-8");
+	echo json_encode($ar_result, JSON_UNESCAPED_UNICODE);
+}

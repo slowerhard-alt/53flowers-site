@@ -1,0 +1,7 @@
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:svgjs="http://svgjs.com/svgjs" width="512" height="512" x="0" y="0" viewBox="0 0 512 512" style="enable-background:new 0 0 512 512" xml:space="preserve" fill="<?=$color ?>"><g>
+	<polygon points="320,92.272 320,92.144 415.808,135.056 512,98.992 256,2.992 0,98.992 256,194.992 351.808,159.056 256,119.568 
+		256,119.472"></polygon>
+	<path d="M0,130.992v288l240,90.016v-288L0,130.992z M128,420.048l-64-24v-34.144l64,24V420.048z"></path>
+	<polygon points="416,166.992 416,247.152 352,271.152 352,190.992 272,221.008 272,509.008 512,418.992 512,130.992"></polygon>
+</svg>

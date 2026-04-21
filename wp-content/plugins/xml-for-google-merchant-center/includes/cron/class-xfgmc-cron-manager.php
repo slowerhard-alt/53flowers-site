@@ -1,0 +1,315 @@
+<?php
+
+/**
+ * CRON task management for the YML for Yandex Market plugin.
+ *
+ * @link       https://icopydoc.ru
+ * @since      4.1.0
+ * @version    4.3.0 (05-04-2026)
+ *
+ * @package    XFGMC
+ * @subpackage XFGMC/admin/cron
+ */
+
+/**
+ * Class for managing CRON tasks related to feed generation.
+ *
+ * Responsible for:
+ * - Scheduling the start of feed building
+ * - Step-by-step feed generation
+ * - Registration of custom cron intervals
+ *
+ * @package    XFGMC
+ * @subpackage XFGMC/includes/cron
+ * @author     Maxim Glazunov <icopydoc@gmail.com>
+ */
+class XFGMC_Cron_Manager {
+
+	/**
+	 * Registers all hooks related to this component through the given loader.
+	 *
+	 * This method sets up the functionality of the current module by attaching callbacks for:
+	 * - Adding custom cron schedules (e.g. every minute, three hours, six hours, every two days).
+	 * - Starting the full feed creation process via `xfgmc_cron_start_feed_creation`.
+	 * - Performing incremental feed generation every minute using `xfgmc_cron_sborki` until complete.
+	 * 
+	 * Each hook is registered with proper priority and context via the loader, ensuring
+	 * reliable and organized integration with the WordPress hook system.
+	 *
+	 * @access  public
+	 *
+	 * @param XFGMC_Loader $loader The loader instance responsible for managing WordPress actions and filters.
+	 *
+	 * @return void
+	 */
+	public function init_hooks( XFGMC_Loader $loader ) {
+
+		// Add cron intervals to WordPress
+		$loader->add_action( 'cron_schedules', $this, 'add_cron_intervals' );
+
+		// этот крон срабатывает в момент запуска генерации фида с нуля
+		$loader->add_action( 'xfgmc_cron_start_feed_creation', $this, 'do_start_feed_creation' );
+
+		// этот крон срабатывает в процессе генерации фида. вызывает кроном xfgmc_cron_start_feed_creation
+		$loader->add_action( 'xfgmc_cron_sborki', $this, 'do_it_every_minute' );
+
+	}
+
+	/**
+	 * Add cron intervals to WordPress. Function for `cron_schedules` action-hook.
+	 * 
+	 * @param array $schedules
+	 * 
+	 * @return array
+	 */
+	public function add_cron_intervals( $schedules ) {
+
+		$schedules['every_minute'] = [
+			'interval' => 60,
+			'display' => __( 'Every minute', 'xml-for-google-merchant-center' )
+		];
+		$schedules['three_hours'] = [
+			'interval' => 10800,
+			'display' => __( 'Every three hours', 'xml-for-google-merchant-center' )
+		];
+		$schedules['six_hours'] = [
+			'interval' => 21600,
+			'display' => __( 'Every six hours', 'xml-for-google-merchant-center' )
+		];
+		$schedules['every_two_days'] = [
+			'interval' => 172800,
+			'display' => __( 'Every two days', 'xml-for-google-merchant-center' )
+		];
+		return $schedules;
+
+	}
+
+	/**
+	 * The function responsible for starting the creation of the feed.
+	 * Function for `xfgmc_cron_start_feed_creation` action-hook.
+	 * 
+	 * @param string $feed_id
+	 * 
+	 * @return void
+	 */
+	public function do_start_feed_creation( $feed_id ) {
+
+		XFGMC_Error_Log::record( sprintf( 'FEED #%1$s; %2$s; %3$s: %4$s; %5$s: %6$s',
+			$feed_id,
+			__( 'The CRON task for creating a feed has started', 'xml-for-google-merchant-center' ),
+			__( 'File', 'xml-for-google-merchant-center' ),
+			'class-xfgmc-cron-manager.php',
+			__( 'Line', 'xml-for-google-merchant-center' ),
+			__LINE__
+		) );
+
+		// счётчик завершенных товаров в положение 0.
+		univ_option_upd(
+			'xfgmc_last_element_feed_' . $feed_id,
+			'0',
+			'no'
+		);
+
+		// запланируем CRON сборки
+		$planning_result = self::cron_sborki_task_planning( $feed_id );
+
+		if ( false === $planning_result ) {
+			XFGMC_Error_Log::record( sprintf(
+				'FEED #%1$s; ERROR: %2$s `xfgmc_cron_sborki`; %3$s: %4$s; %5$s: %6$s',
+				$feed_id,
+				__( 'Failed to schedule a CRON task', 'xml-for-google-merchant-center' ),
+				__( 'File', 'xml-for-google-merchant-center' ),
+				'class-xfgmc-cron-manager.php',
+				__( 'Line', 'xml-for-google-merchant-center' ),
+				__LINE__
+			) );
+		} else {
+			XFGMC_Error_Log::record( sprintf(
+				'FEED #%1$s; %2$s `xfgmc_cron_sborki`; %3$s: %4$s; %5$s: %6$s',
+				$feed_id,
+				__( 'Successful CRON task planning', 'xml-for-google-merchant-center' ),
+				__( 'File', 'xml-for-google-merchant-center' ),
+				'class-xfgmc-cron-manager.php',
+				__( 'Line', 'xml-for-google-merchant-center' ),
+				__LINE__
+			) );
+			// сборку начали
+			common_option_upd(
+				'xfgmc_status_sborki',
+				'1',
+				'no',
+				$feed_id,
+				'xfgmc'
+			);
+			// сразу планируем крон-задачу на начало сброки фида в следующий раз в нужный час
+			$run_cron = common_option_get(
+				'xfgmc_run_cron',
+				'disabled',
+				$feed_id,
+				'xfgmc'
+			);
+			if ( in_array( $run_cron, [ 'hourly', 'three_hours', 'six_hours', 'twicedaily', 'daily', 'every_two_days', 'weekly' ] ) ) {
+				$arr = wp_get_schedules();
+				if ( isset( $arr[ $run_cron ]['interval'] ) ) {
+					self::cron_starting_feed_creation_task_planning( $feed_id, $arr[ $run_cron ]['interval'] );
+				}
+			}
+		}
+
+	}
+
+	/**
+	 * The function is called every minute until the feed is created or creation is interrupted.
+	 * Function for `xfgmc_cron_sborki` action-hook.
+	 * 
+	 * @param string $feed_id
+	 * 
+	 * @return string
+	 */
+	public function do_it_every_minute( $feed_id ) {
+
+		XFGMC_Error_Log::record( sprintf( 'FEED #%1$s; %2$s `xfgmc_cron_sborki`; %3$s: %4$s; %5$s: %6$s',
+			$feed_id,
+			__( 'The CRON task started', 'xml-for-google-merchant-center' ),
+			__( 'File', 'xml-for-google-merchant-center' ),
+			'class-xfgmc-cron-manager.php',
+			__( 'Line', 'xml-for-google-merchant-center' ),
+			__LINE__
+		) );
+
+		$start_time = microtime( true );
+
+		try {
+			$generation = new XFGMC_Generation_XML( $feed_id );
+			$generation->run();
+		} catch (\Throwable $e) { // Ловим всё: Exception + Error
+			XFGMC_Error_Log::record( sprintf(
+				'FEED #%1$s; ERROR in run(): %2$s; File: %3$s; Line: %4$s',
+				$feed_id,
+				$e->getMessage(),
+				$e->getFile(),
+				$e->getLine()
+			) );
+			// ? Можно даже поставить флаг остановки
+			// common_option_upd( 'xfgmc_status_sborki', '-1', 'no', $feed_id, 'xfgmc' );
+		}
+
+		$execution_time = microtime( true ) - $start_time;
+
+		XFGMC_Error_Log::record( sprintf(
+			'FEED #%1$s; %2$s: %.3f sec; %3$s: %4$s; %5$s: %6$s',
+			$feed_id,
+			__( 'The CRON task completed in', 'xml-for-google-merchant-center' ),
+			$execution_time,
+			__( 'File', 'xml-for-google-merchant-center' ),
+			'class-xfgmc-cron-manager.php',
+			__LINE__
+		) );
+		return $execution_time;
+
+	}
+
+	/**
+	 * Cron starting the feed creation task planning.
+	 * 
+	 * @param string $feed_id
+	 * @param int $delay_second Scheduling task CRON in N seconds.
+	 * 
+	 * @return bool|WP_Error
+	 */
+	public static function cron_starting_feed_creation_task_planning( $feed_id, $delay_second = 0 ) {
+
+		$planning_result = false;
+		$run_cron = common_option_get(
+			'xfgmc_run_cron',
+			'disabled',
+			$feed_id,
+			'xfgmc'
+		);
+
+		if ( $run_cron === 'disabled' ) {
+			// останавливаем сборку досрочно, если это выбрано в настройках плагина при сохранении
+			wp_clear_scheduled_hook( 'xfgmc_cron_start_feed_creation', [ $feed_id ] );
+			wp_clear_scheduled_hook( 'xfgmc_cron_sborki', [ $feed_id ] );
+			univ_option_upd(
+				'xfgmc_last_element_feed_' . $feed_id,
+				0
+			);
+			common_option_upd(
+				'xfgmc_status_sborki',
+				'-1',
+				'no',
+				$feed_id,
+				'xfgmc'
+			);
+		} else {
+			wp_clear_scheduled_hook( 'xfgmc_cron_start_feed_creation', [ $feed_id ] );
+			if ( ! wp_next_scheduled( 'xfgmc_cron_start_feed_creation', [ $feed_id ] ) ) {
+				$cron_start_time = common_option_get(
+					'xfgmc_cron_start_time',
+					'disabled',
+					$feed_id,
+					'xfgmc'
+				);
+				switch ( $cron_start_time ) {
+					case 'disabled':
+
+						return false;
+
+					case 'now':
+
+						$cron_interval = current_time( 'timestamp', 1 ) + 2; // добавим 2 сек
+
+						break;
+					default:
+
+						$gmt_offset = (float) get_option( 'gmt_offset' );
+						$offset_in_seconds = $gmt_offset * 3600;
+						$cron_interval = strtotime( $cron_start_time ) - $offset_in_seconds;
+						if ( $cron_interval < current_time( 'timestamp', 1 ) ) {
+							// если нужный час уже прошел. запланируем на следующие сутки
+							$cron_interval = $cron_interval + 86400;
+						}
+				}
+
+				// планируем крон-задачу на начало сброки фида в нужный час
+				$planning_result = wp_schedule_single_event(
+					$cron_interval + $delay_second,
+					'xfgmc_cron_start_feed_creation',
+					[ $feed_id ]
+				);
+			}
+		}
+
+		return $planning_result;
+
+	}
+
+	/**
+	 * Cron sborki task planning.
+	 * 
+	 * @param string $feed_id
+	 * @param int $delay_second Scheduling task CRON in N seconds.
+	 * 
+	 * @return bool|WP_Error
+	 */
+	public static function cron_sborki_task_planning( $feed_id, $delay_second = 5 ) {
+
+		wp_clear_scheduled_hook( 'xfgmc_cron_sborki', [ $feed_id ] );
+		if ( ! wp_next_scheduled( 'xfgmc_cron_sborki', [ $feed_id ] ) ) {
+			$planning_result = wp_schedule_single_event(
+				current_time( 'timestamp', 1 ) + $delay_second, // добавим 5 секунд
+				'xfgmc_cron_sborki',
+				[ $feed_id ]
+			);
+		} else {
+			// TODO: false — это ошибка? Или просто «уже запланировано»?
+			// TODO: Лучше возвращать true, если задача уже есть: return true; // уже запланировано
+			$planning_result = false;
+		}
+
+		return $planning_result;
+
+	}
+
+}

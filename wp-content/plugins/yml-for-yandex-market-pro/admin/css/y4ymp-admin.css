@@ -1,0 +1,70 @@
+/**
+ * All of the CSS for your admin-specific functionality should be included in this file.
+ */
+
+/* ширина колонки */
+.column-y4ymp {
+    width: 36px;
+    text-align: center;
+}
+
+/* задаем относительное позиционирование контейнеру */
+.y4ymp_block {
+    position: relative;
+}
+
+/* Оформление скрытого элемента по умолчанию */
+.y4ymp_hint {
+    display: none;
+    width: 160px;
+    position: absolute;
+    bottom: 130%;
+    left: 0px;
+    background-color: #212121;
+    color: #fff;
+    padding: 5px;
+    text-align: center;
+    -moz-box-shadow: 0 1px 1px rgba(0, 0, 0, .16);
+    -webkit-box-shadow: 0 1px 1px rgba(0, 0, 0, .16);
+    box-shadow: 0 1px 1px rgba(0, 0, 0, .16);
+    font-size: 12px;
+}
+
+/* Появление скрытого элемента при наведении */
+.y4ymp_hover:hover+.y4ymp_hint {
+    display: block;
+}
+
+/* Дополнительное оформление скрытого элемента (необязательно) */
+.y4ymp_hover+.y4ymp_hint:before {
+    content: " ";
+    position: absolute;
+    top: 98%;
+    left: 10%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    height: 0;
+    width: 0;
+    border: 7px solid transparent;
+    border-right: 7px solid #212121;
+    border-color: #212121 transparent transparent transparent;
+    z-index: 9999;
+}
+
+.y4ymp_hover+.y4ymp_hint:after {
+    content: " ";
+    position: absolute;
+    top: 100%;
+    left: 10%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    height: 0;
+    width: 0;
+    border: 7px solid transparent;
+    border-right: 7px solid #212121;
+    border-color: rgba(0, 0, 0, .16) transparent transparent transparent;
+    z-index: 9999;
+}
+/* end Дополнительное оформление скрытого элемента (необязательно) */

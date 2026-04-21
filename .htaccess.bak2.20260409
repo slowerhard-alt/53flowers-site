@@ -1,0 +1,165 @@
+# Block readme.html and license.txt
+<Files readme.html>
+    Order Allow,Deny
+    Deny from all
+</Files>
+<Files license.txt>
+    Order Allow,Deny
+    Deny from all
+</Files>
+
+# Hide PHP version
+<IfModule mod_headers.c>
+    Header unset X-Powered-By
+</IfModule>
+
+# protect wpconfig.php
+<files wp-config.php>
+    order allow,deny
+    deny from all
+</files>
+<files xmlrpc.php>
+    order allow,deny
+    deny from all
+</files>
+
+Redirect 301 /news/category/bez-rubriki/ /news/
+
+Redirect 301 /catalog/rozy-miks/ /catalog/rozy/rozy-miks/
+Redirect 301 /catalog/krasnye-rozy/ /catalog/rozy/krasnye-rozy/
+Redirect 301 /catalog/belye-rozy/ /catalog/rozy/belye-rozy/
+Redirect 301 /catalog/rozovye-rozy/ /catalog/rozy/rozovye-rozy/
+Redirect 301 /catalog/malinovye-rozy/ /catalog/rozy/malinovye-rozy/
+Redirect 301 /catalog/zheltye-rozy/ /catalog/rozy/zheltye-rozy/
+Redirect 301 /catalog/rozy-drugie/ /catalog/rozy/rozy-drugie/
+Redirect 301 /catalog/kustovye-rozy/ /catalog/rozy/kustovye-rozy/
+Redirect 301 /catalog/v-shlyapnyh-korobkah/ /catalog/kompozitsii/v-shlyapnyh-korobkah/
+Redirect 301 /catalog/v-korzinkah/ /catalog/kompozitsii/v-korzinkah/
+Redirect 301 /catalog/v-serdtsah/ /catalog/kompozitsii/v-serdtsah/
+Redirect 301 /catalog/v-yashhikah/ /catalog/kompozitsii/v-yashhikah/
+Redirect 301 /catalog/alstromeriya/ /catalog/monobukety/alstromeriya/
+Redirect 301 /catalog/gerbery/ /catalog/monobukety/gerbery/
+Redirect 301 /catalog/giatsinty/ /catalog/monobukety/giatsinty/
+Redirect 301 /catalog/gipsofily/ /catalog/monobukety/gipsofily/
+Redirect 301 /catalog/gvozdiki-diantusy/ /catalog/monobukety/gvozdiki-diantusy/
+Redirect 301 /catalog/irisy/ /catalog/monobukety/irisy/
+Redirect 301 /catalog/orhidei/ /catalog/monobukety/orhidei/
+Redirect 301 /catalog/piony/ /catalog/monobukety/piony/
+Redirect 301 /catalog/romashki/ /catalog/monobukety/romashki/
+Redirect 301 /catalog/tyulpany/ /catalog/monobukety/tyulpany/
+Redirect 301 /catalog/hrizantema/ /catalog/monobukety/hrizantema/
+Redirect 301 /catalog/freziya/ /catalog/monobukety/freziya/
+Redirect 301 /catalog/eustoma/ /catalog/monobukety/eustoma/
+Redirect 301 /catalog/sladosti/ /catalog/podarki/sladosti/
+Redirect 301 /catalog/igrushki/ /catalog/podarki/igrushki/
+Redirect 301 /catalog/otkrytki/ /catalog/podarki/otkrytki/
+Redirect 301 /catalog/konverty/ /catalog/podarki/konverty/
+Redirect 301 /catalog/toppery/ /catalog/podarki/toppery/
+Redirect 301 /catalog/shariki/ /catalog/podarki/shariki/
+Redirect 301 /catalog/ukrasheniya/ /catalog/podarki/ukrasheniya/
+Redirect 301 /catalog/svechi/ /catalog/podarki/svechi/
+Redirect 301 /catalog/vazy/ /catalog/podarki/vazy/
+Redirect 301 /catalog/kartiny/ /catalog/podarki/kartiny/
+Redirect 301 /catalog/kruzhki/ /catalog/podarki/kruzhki/
+Redirect 301 /catalog/pakety/ /catalog/podarki/pakety/
+Redirect 301 /catalog/udobreniya/ /catalog/podarki/udobreniya/
+
+php_flag display_errors On
+php_value max_input_vars 100000
+
+# Для работы xs_cache
+<IfModule mod_rewrite.c>
+RewriteRule ^index.php$  /xs_check_cache.php [L]
+</IfModule>
+
+# BEGIN WordPress
+# Директивы (строки) между `BEGIN WordPress` и `END WordPress`
+# созданы автоматически и подлежат изменению только через фильтры WordPress.
+# Сделанные вручную изменения между этими маркерами будут перезаписаны.
+<IfModule mod_rewrite.c>
+RewriteEngine On
+RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+RewriteBase /
+RewriteRule ^index\.php$ - [L]
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule . /index.php [L]
+</IfModule>
+
+# END WordPress
+
+
+# Отсекаем спам в комментариях
+
+<IfModule mod_rewrite.c>
+RewriteEngine On
+RewriteCond %{REQUEST_METHOD} POST
+RewriteCond %{REQUEST_URI} .wp-comments-post\.php*
+RewriteCond %{HTTP_REFERER} !.*53flowers.com.* [OR]
+RewriteCond %{HTTP_USER_AGENT} ^$
+RewriteRule (.*) ^https://%{REMOTE_ADDR}/$ [R=301,L]
+</IfModule>
+
+# Bot Blocker
+<IfModule mod_setenvif.c>
+  SetEnvIfNoCase User-Agent ^$ keep_out
+  SetEnvIfNoCase User-Agent (pycurl|casper|cmsworldmap|diavol|dotbot) keep_out
+  SetEnvIfNoCase User-Agent (flicky|ia_archiver|jakarta|kmccrew) keep_out
+  SetEnvIfNoCase User-Agent (purebot|comodo|feedfinder|planetwork) keep_out
+  <Limit GET POST PUT>
+    Order Allow,Deny
+    Allow from all
+    Deny from env=keep_out
+  </Limit>
+</IfModule>
+
+# Включаем кэш в браузерах посетителей
+
+<IfModule mod_expires.c>
+	ExpiresActive On
+	ExpiresDefault "access 7 days"
+	ExpiresByType application/javascript "access plus 1 year"
+	ExpiresByType text/javascript "access plus 1 year"
+	ExpiresByType text/css "access plus 1 year"
+	ExpiresByType text/html "access plus 7 day"
+	ExpiresByType text/x-javascript "access 1 year"
+	ExpiresByType image/gif "access plus 1 year"
+	ExpiresByType image/jpeg "access plus 1 year"
+	ExpiresByType image/png "access plus 1 year"
+	ExpiresByType image/jpg "access plus 1 year"
+	ExpiresByType image/x-icon "access 1 year"
+	ExpiresByType application/x-shockwave-flash "access 1 year"
+</IfModule>
+
+<ifModule mod_headers.c>
+	<filesMatch "\.(ico|pdf|flv|jpg|jpeg|png|gif|swf)$">
+	Header set Cache-Control "max-age=2592000, public"
+	</filesMatch>
+	<filesMatch "\.(css|js)$">
+	Header set Cache-Control "max-age=2592000, public"
+	</filesMatch>
+	<filesMatch "\.(xml|txt)$">
+	Header set Cache-Control "max-age=172800, public, must-revalidate"
+	</filesMatch>
+	<filesMatch "\.(html|htm)$">
+	Header set Cache-Control "max-age=172800, private, must-revalidate"
+	</filesMatch>
+</ifModule>
+
+<IfModule mod_setenvif.c>
+	BrowserMatch "MSIE" force-no-vary
+	BrowserMatch "Mozilla/4.[0-9]{2}" force-no-vary
+</IfModule>
+
+FileETag MTime Size
+<ifmodule mod_expires.c>
+	<filesmatch ".(jpg|jpeg|gif|png|ico|css|js)$">
+	ExpiresActive on
+	ExpiresDefault "access plus 1 year"
+	</filesmatch>
+</ifmodule>
+
+<IfModule mod_setenvif.c>
+	BrowserMatch "MSIE" force-no-vary
+	BrowserMatch "Mozilla/4.[0-9]{2}" force-no-vary
+</IfModule>

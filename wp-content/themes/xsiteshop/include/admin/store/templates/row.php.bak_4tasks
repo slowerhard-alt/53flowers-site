@@ -1,0 +1,361 @@
+<?
+global $big_data;
+
+$coefficient = get_store_coefficient($v->group_id, $v->days);
+if(!isset($coefficient['c']))		
+	$coefficient['c'] = xs_get_option('xs_store_'.$v->group_id.'_color');
+
+$ar_competitors = json_decode($v->competitors, true);
+
+$is_group = isset($v->is_group) && $v->is_group == 'y';
+
+if(is_row('sort'))
+{
+	if($is_group)
+	{
+		?><td>
+			<span class="store_row_value"><?=$v->sort ?></span>
+		</td><?
+	}
+	else
+	{
+		?><td>
+			<span class="store_row_show"><?=$v->sort ?></span>
+			<span class="store_row_edit"><input type="number" class="store_input_sort" min="0" step="1" name="c[<?=$v->id ?>][sort]" value="<?=$v->sort ?>" /></span>
+		</td><?
+	}
+}
+
+if(is_row('category_id'))
+{
+	?><td <?=!empty($v->color) && $v->color != "#ffffff" ? 'style="background:'.$v->color.'"' : '' ?>>
+		<span class="store_row_show"><?=$v->category_name ?></span>
+		<span class="store_row_edit">
+			<select name="c[<?=$v->id ?>][category_id]" class="store_input_category_id"><?
+				
+				foreach($big_data['category_list_all'] as $_k => $_v) 
+				{
+					?><option value="<?=$_k ?>"<?=$_k == $v->category_id ? " selected" : ""?>><?=$_v ?></option><?
+				}
+			
+			?></select>
+	</td><?
+}
+
+if(is_row('name'))
+{
+	if($is_group)
+	{
+		?><td <?=!empty($v->color) && $v->color != "#ffffff" ? 'style="background:'.$v->color.'"' : '' ?>>
+			<div class="store_row_long">
+				<span class="store_row_value">
+					<a class="xs_image_link" target="_blank" data-modal="group-detail" data-id="<?=$v->id ?>" href="#">
+						<span class="name"><?=$v->name ?></span>
+					</a>
+				</span>
+			</div>
+		</td><?
+	}
+	else
+	{
+		?><td <?=!empty($v->color) && $v->color != "#ffffff" ? 'style="background:'.$v->color.'"' : '' ?>>
+			<div class="store_row_long">
+				<span class="store_row_show">
+					<a class="xs_image_link" target="_blank" href="/wp-admin/admin.php?page=store&section=detail&id=<?=$v->id ?>">
+						<span class="name"><?=$v->name ?></span>
+					</a>
+				</span>
+				<span class="store_row_edit"><input type="text" class="store_input_name" name="c[<?=$v->id ?>][name]" value="<?=$v->name ?>" /></span>
+			</div>
+		</td><?
+	}
+}
+
+if(is_row('name_for_user'))
+{
+	?><td <?=!empty($v->color) && $v->color != "#ffffff" ? 'style="background:'.$v->color.'"' : '' ?>>
+		<div class="store_row_long">
+			<span class="store_row_show"><?=$v->name_for_user ?></span>
+			<span class="store_row_edit"><input type="text" class="store_input_name_for_user" name="c[<?=$v->id ?>][name_for_user]" value="<?=$v->name_for_user ?>" /></span>
+		</div>
+	</td><?
+}
+
+if(is_row('sale_type'))
+{
+	?><td class="<?=((isset($v->sale_rules['percent']) && $v->sale_rules['percent'] > 0 && (!isset($v->sale_rules['type']) || empty($v->sale_rules['type']))) || (isset($v->sale_rules['type']) && $v->sale_rules['type'] == 'count')) ? 'cell--sale' : '' ?>">
+		<span class="store_row_show"><?=isset($v->sale_rules['type']) && !empty($v->sale_rules['type']) ? $big_data['sale_rules'][$v->sale_rules['type']] : "Без правил" ?></span>
+		<span class="store_row_edit">
+			<select name="c[<?=$v->id ?>][sale_rules][type]" class="store_input_sale_type"><?
+				
+				foreach($big_data['sale_rules'] as $_k => $_v) 
+				{
+					?><option value="<?=$_k ?>"<?=isset($v->sale_rules['type']) && $v->sale_rules['type'] == $_k ? " selected" : ""?>><?=$_v ?></option><?
+				}
+			
+			?></select>
+		</span>
+	</td><?
+}
+
+if(is_row('group'))
+{
+	?><td style="background:<?=xs_get_option('xs_store_'.$v->group_id.'_color') ?>">
+		<span class="store_row_show"><?=$big_data["store_groups"][$v->group_id] ?></span>
+		<span class="store_row_edit">
+			<select name="c[<?=$v->id ?>][group_id]" class="store_input_group"><?
+			
+				foreach($big_data["store_groups"] as $_k => $_v)
+				{
+					?><option value="<?=$_k ?>"<?=$_k == $v->group_id ? " selected" : "" ?>><?=$_v ?></option><?
+				}
+				
+			?></select>
+		</span>
+	</td><?
+}
+
+if(is_row('coefficient'))
+{
+	?><td style="background:<?=$coefficient['c'] ?>">
+		<span><?=$coefficient['k'] ?></span>
+	</td><?
+}
+
+if(is_row('days'))
+{
+	$_days_bg = '';
+	if($v->days <= 1) $_days_bg = '#a5d6a7';
+	elseif($v->days <= 3) $_days_bg = '#c8e6c9';
+	elseif($v->days <= 7) $_days_bg = '#fff9c4';
+	elseif($v->days <= 14) $_days_bg = '#ffcc80';
+	else $_days_bg = '#ef9a9a';
+
+	?><td class="cell--days" style="background:<?=$_days_bg?>">
+		<span class="store_row_show"><?=$v->days?></span>
+		<span class="store_row_edit"><input type="number" class="store_input_days" min="0" step="1" name="c[<?=$v->id ?>][days]" value="<?=$v->days ?>" /></span>
+	</td><?
+}
+
+if(is_row('ms_quantity'))
+{
+	?><td class="<?=$v->ms_quantity > 0 ? 'cell--stock-ok' : 'cell--stock-zero'?>">
+		<span><?=$v->ms_quantity ?></span>
+	</td><?
+}
+
+if(is_row('purchase_price'))
+{
+	?><td>
+		<span class="store_row_show"><?=number_format($v->purchase_price, 0, ',', ' ') ?> &#8381;</span>
+		<span class="store_row_edit"><input type="number" class="store_input_purchase_price" min="0" step="1" name="c[<?=$v->id ?>][purchase_price]" value="<?=$v->purchase_price ?>" /></span>
+	</td><?
+}
+
+if(is_row('original_price'))
+{
+	?><td>
+		<span class="store_row_show"><?=number_format($v->original_price, 0, ',', ' ') ?> &#8381;</span>
+		<span class="store_row_edit"><input type="number" class="store_input_price" min="0" step="1" name="c[<?=$v->id ?>][original_price]" value="<?=$v->original_price ?>" /></span>
+	</td><?
+}
+
+if(is_row('forced_price'))
+{
+	?><td class="<?=$v->forced_price > 0 ? 'cell--sale' : '' ?>">
+		<span class="store_row_show"><?=$v->forced_price == 0 ? "" : (number_format($v->forced_price, 0, ',', ' ') . ' &#8381;') ?></span>
+		<span class="store_row_edit"><input type="number" class="store_input_forced_price" min="0" step="0.01" name="c[<?=$v->id ?>][forced_price]" value="<?=$v->forced_price ?>" /><span class="store_hint_x2"><?=number_format(ceil($v->original_price * 2 / 5) * 5, 0, ',', ' ')?></span></span>
+	</td><?
+}
+
+if(is_row('sale_percent'))
+{
+	?><td class="<?=(isset($v->sale_rules['percent']) && $v->sale_rules['percent'] > 0) ? 'cell--sale' : '' ?>">
+		<span class="store_row_show"><?=isset($v->sale_rules['percent']) && $v->sale_rules['percent'] > 0 ? $v->sale_rules['percent']."%" : "" ?></span>
+		<span class="store_row_edit"><input type="number" class="store_input_sale_percent" min="0" step="1" name="c[<?=$v->id ?>][sale_rules][percent]" value="<?=isset($v->sale_rules['percent']) ? $v->sale_rules['percent'] : "" ?>" /><span class="store_cell_clear" title="Очистить">×</span></span>
+	</td><?
+}
+
+if(is_row('price'))
+{
+	?><td class="cell--price">
+		<span><?=number_format($v->price, 0, ',', ' ') ?> &#8381;</span>
+	</td><?
+}
+
+if(is_row('sale_price'))
+{
+	?><td class="<?=$v->sale_price > 0 ? 'cell--sale' : '' ?>">
+		<span><?=$v->sale_price == 0 ? number_format($v->price, 0, ',', ' ').' &#8381;' : number_format($v->sale_price, 0, ',', ' ').' &#8381;' ?></span>
+	</td><?
+}
+
+if(is_row('sale_forced_price'))
+{
+	?><td class="<?=$v->forced_price > 0 ? 'cell--sale' : '' ?>">
+		<span><?
+			
+			if($v->forced_price != 0)
+			{
+				echo wc_price(
+					(isset($v->sale_rules['percent']) && !empty($v->sale_rules['percent']) && $v->sale_rules['percent'] > 0 
+						? $v->forced_price + $v->forced_price / 100 * $v->sale_rules['percent']
+						: $v->forced_price
+					), ['decimals' => 2]
+				);
+			}
+
+		?></span>
+	</td><?
+}
+
+if(is_row('is_set_forced_price'))
+{
+	?><td <?=!empty($v->color) && $v->color != "#ffffff" ? 'style="background:'.$v->color.'"' : '' ?>>
+		<span class="store_row_show"><?=$v->is_set_forced_price == 'y' ? "Да" : "Нет" ?></span>
+		<span class="store_row_edit"><input type="checkbox" class="store_input_is_set_forced_price" name="c[<?=$v->id ?>][is_set_forced_price]" value="y" <?=$v->is_set_forced_price == 'y' ? ' checked' : '' ?> /></span>
+	</td><?
+}
+
+if(is_row('sale_min_quantity'))
+{
+	?><td class="<?=((isset($v->sale_rules['percent']) && $v->sale_rules['percent'] > 0 && (!isset($v->sale_rules['type']) || empty($v->sale_rules['type']))) || (isset($v->sale_rules['type']) && $v->sale_rules['type'] == 'count')) ? 'cell--sale' : '' ?>">
+		<span class="store_row_show"><?=isset($v->sale_rules['min_quantity']) && $v->sale_rules['min_quantity'] > 0 ? $v->sale_rules['min_quantity']."&nbsp;шт." : "" ?></span>
+		<span class="store_row_edit"><input type="number" class="store_input_sale_min_quantity" min="0" step="1" name="c[<?=$v->id ?>][sale_rules][min_quantity]" value="<?=isset($v->sale_rules['min_quantity']) ? $v->sale_rules['min_quantity'] : "" ?>" /></span>
+	</td><?
+}
+
+if(is_row('sale_min_days'))
+{
+	?><td class="<?=((isset($v->sale_rules['percent']) && $v->sale_rules['percent'] > 0 && (!isset($v->sale_rules['type']) || empty($v->sale_rules['type']))) || (isset($v->sale_rules['type']) && $v->sale_rules['type'] == 'count')) ? 'cell--sale' : '' ?>">
+		<span class="store_row_show"><?=isset($v->sale_rules['min_days']) && $v->sale_rules['min_days'] > 0 ? $v->sale_rules['min_days']."&nbsp;дн." : "" ?></span>
+		<span class="store_row_edit"><input type="number" class="store_input_sale_min_days" min="0" step="1" name="c[<?=$v->id ?>][sale_rules][min_days]" value="<?=isset($v->sale_rules['min_days']) ? $v->sale_rules['min_days'] : "" ?>" /></span>
+	</td><?
+}
+
+if(is_row('color')) 
+{
+	?><td <?=!empty($v->color) && $v->color != "#ffffff" ? 'style="background:'.$v->color.'"' : '' ?>>
+		<span class="store_row_show"><?=$v->color ?></span>
+		<span class="store_row_edit"><input type="color" class="store_input_color" name="c[<?=$v->id ?>][color]" value="<?=$v->color ?>" /></span>
+	</td><?
+}
+	
+if(is_row('show_in_product')) 
+{
+	?><td <?=!empty($v->color) && $v->color != "#ffffff" ? 'style="background:'.$v->color.'"' : '' ?>>
+		<span class="store_row_show"><?=$v->show_in_product == 'y' ? "Да" : "Нет" ?></span>
+		<span class="store_row_edit"><input type="checkbox" class="store_input_show_in_product" name="c[<?=$v->id ?>][show_in_product]" value="y" <?=$v->show_in_product == 'y' ? ' checked' : '' ?> /></span>
+	</td><?
+}
+	
+if(is_row('hide_quantity_in_product')) 
+{
+	?><td <?=!empty($v->color) && $v->color != "#ffffff" ? 'style="background:'.$v->color.'"' : '' ?>>
+		<span class="store_row_show"><?=$v->hide_quantity_in_product == 'y' ? "Да" : "Нет" ?></span>
+		<span class="store_row_edit"><input type="checkbox" class="store_input_hide_quantity_in_product" name="c[<?=$v->id ?>][hide_quantity_in_product]" value="y" <?=$v->hide_quantity_in_product == 'y' ? ' checked' : '' ?> /></span>
+	</td><?
+}
+	
+if(is_row('is_fresh_delivery')) 
+{
+	?><td <?=!empty($v->color) && $v->color != "#ffffff" ? 'style="background:'.$v->color.'"' : '' ?>>
+		<span class="store_row_show"><?=$v->is_fresh_delivery == 'y' ? "Да" : "Нет" ?></span>
+		<span class="store_row_edit"><input type="checkbox" class="store_input_is_fresh_delivery" name="c[<?=$v->id ?>][is_fresh_delivery]" value="y" <?=$v->is_fresh_delivery == 'y' ? ' checked' : '' ?> /></span>
+	</td><?
+}
+	
+if(is_row('favorite')) 
+{
+	?><td <?=!empty($v->color) && $v->color != "#ffffff" ? 'style="background:'.$v->color.'"' : '' ?>>
+		<span class="store_row_show"><?=$v->favorite == 'y' ? "Да" : "Нет" ?></span>
+		<span class="store_row_edit"><input type="checkbox" class="store_input_favorite" name="c[<?=$v->id ?>][favorite]" value="y" <?=$v->favorite == 'y' ? ' checked' : '' ?> /></span>
+	</td><?
+}
+	
+if(is_row('ms_ids')) 
+{
+	$v->ms_ids = sort_ms_ids($v->ms_ids);
+
+	?><td <?=!empty($v->color) && $v->color != "#ffffff" ? 'style="background:'.$v->color.'"' : '' ?>>
+		<span class="store_row_show store_row_show--ms_ids"><?=$v->ms_ids ?></span>
+		<span class="store_row_edit"><textarea class="store_input_ms_ids" name="c[<?=$v->id ?>][ms_ids]"><?=$v->ms_ids ?></textarea></span>
+	</td><?
+}
+	
+if(is_row('ms_is_update_price')) 
+{
+	?><td <?=!empty($v->color) && $v->color != "#ffffff" ? 'style="background:'.$v->color.'"' : '' ?>>
+		<span class="store_row_show"><?=$v->ms_is_update_price == 'y' ? "Да" : "Нет" ?></span>
+		<span class="store_row_edit"><input type="checkbox" class="store_input_ms_is_update_price" name="c[<?=$v->id ?>][ms_is_update_price]" value="y" <?=$v->ms_is_update_price == 'y' ? ' checked' : '' ?> /></span>
+	</td><?
+}
+	
+if(is_row('ms_is_update_days')) 
+{
+	?><td <?=!empty($v->color) && $v->color != "#ffffff" ? 'style="background:'.$v->color.'"' : '' ?>>
+		<span class="store_row_show"><?=$v->ms_is_update_days == 'y' ? "Да" : "Нет" ?></span>
+		<span class="store_row_edit"><input type="checkbox" class="store_input_ms_is_update_days" name="c[<?=$v->id ?>][ms_is_update_days]" value="y" <?=$v->ms_is_update_days == 'y' ? ' checked' : '' ?> /></span>
+	</td><?
+}
+
+if(is_row('ms_quantity_for_days'))
+{
+	?><td <?=!empty($v->color) && $v->color != "#ffffff" ? 'style="background:'.$v->color.'"' : '' ?>>
+		<span class="store_row_show"><?=$v->ms_quantity_for_days == 0 ? "" : $v->ms_quantity_for_days ?></span>
+		<span class="store_row_edit"><input type="number" class="store_input_ms_quantity_for_days" min="0" step="1" name="c[<?=$v->id ?>][ms_quantity_for_days]" value="<?=$v->ms_quantity_for_days ?>" /></span>
+	</td><?
+}
+
+if(is_row('ms_percent_outstock'))
+{
+	?><td <?=!empty($v->color) && $v->color != "#ffffff" ? 'style="background:'.$v->color.'"' : '' ?>>
+		<span class="store_row_show"><?=$v->ms_percent_outstock == 0 ? "" : $v->ms_percent_outstock."%" ?></span>
+		<span class="store_row_edit"><input type="number" class="store_input_ms_percent_outstock" min="0" step="0.01" name="c[<?=$v->id ?>][ms_percent_outstock]" value="<?=$v->ms_percent_outstock ?>" /></span>
+	</td><?
+}
+	
+if(is_row('ms_is_update_retail_price')) 
+{
+	?><td <?=!empty($v->color) && $v->color != "#ffffff" ? 'style="background:'.$v->color.'"' : '' ?>>
+		<span class="store_row_show"><?=$v->ms_is_update_retail_price == 'y' ? "Да" : "Нет" ?></span>
+		<span class="store_row_edit"><input type="checkbox" class="store_input_ms_is_update_retail_price" name="c[<?=$v->id ?>][ms_is_update_retail_price]" value="y" <?=$v->ms_is_update_retail_price == 'y' ? ' checked' : '' ?> /></span>
+	</td><?
+}
+
+if(is_row('ms_image_id'))
+{
+	?><td <?//=!empty($v->color) && $v->color != "#ffffff" ? 'style="background:'.$v->color.'"' : '' ?>>
+		<span class="store_row_show"><?=$v->ms_image_id ?></span>
+		<span class="store_row_edit"><input type="text" class="store_input_ms_image_id" name="c[<?=$v->id ?>][ms_image_id]" value="<?=$v->ms_image_id ?>" /></span>
+	</td><?
+}
+
+
+for($i = 0; $i < $big_data['store_competitors_count']; $i++)
+{
+	if(!is_row('competitor_'.$i))
+		continue;
+
+	$competitor = isset($ar_competitors[$i])
+		? $ar_competitors[$i]
+		: false;
+	
+	if(!isset($competitor['p']))
+		$competitor['p'] = 0;
+	
+	?><td>
+		<span class="store_row_show">
+			<?=$competitor['p'] > 0 ? wc_price($competitor['p']) : "" ?><?
+			
+			if(isset($competitor['l']) && !empty($competitor['l']))
+			{
+				?>&nbsp;<a href="<?=$competitor['l'] ?>" target="_blank" class="store_row_competitor_link">***</a><?
+			}
+			
+		?></span>
+		<span class="store_row_edit">
+			<input type="number" class="store_input_competitor" min="0" step="1" name="c[<?=$v->id ?>][competitors][<?=$i ?>]" value="<?=$competitor['p'] ?>" />&nbsp;<a href="<?=$competitor['l'] ?>" target="_blank" class="store_row_competitor_link">***</a>
+		</span>
+	</td><?
+}				

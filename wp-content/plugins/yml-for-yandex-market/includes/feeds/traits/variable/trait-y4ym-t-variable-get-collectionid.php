@@ -1,0 +1,71 @@
+<?php
+
+/**
+ * Trait for variable products.
+ *
+ * @link       https://icopydoc.ru
+ * @since      0.1.0
+ * @version    5.4.0 (16-04-2026)
+ *
+ * @package    Y4YM
+ * @subpackage Y4YM/includes/feeds/traits/variable
+ */
+
+/**
+ * The trait adds `get_collection_id` methods.
+ * 
+ * This method allows you to return the `collectionId` tag.
+ *
+ * @since      0.1.0
+ * @package    Y4YM
+ * @subpackage Y4YM/includes/feeds/traits/variable
+ * @author     Maxim Glazunov <icopydoc@gmail.com>
+ * @depends    classes:     Y4YM_Get_Paired_Tag
+ *                          Y4YM_Options
+ *             methods:     get_product
+ *                          get_offer
+ *                          get_feed_id
+ */
+
+trait Y4YM_T_Variable_Get_CollectionId {
+
+	/**
+	 * Get `collectionId` tag.
+	 * 
+	 * @see https://yandex.ru/support/direct/ru/feeds/requirements-yml
+	 * 
+	 * @param string $tag_name
+	 * @param string $result_xml
+	 * 
+	 * @return string Example: `<collectionId>26</collectionId>`.
+	 */
+	public function get_collection_id( $tag_name = 'collectionId', $result_xml = '' ) {
+
+		$yfym_collection_id = Y4YM_Options::settings_get(
+			'y4ym_collection_id',
+			'disabled',
+			$this->get_feed_id(),
+			'y4ym'
+		);
+		if ( 'enabled' === $yfym_collection_id ) {
+			$collections_arr = get_the_terms( $this->get_product()->get_id(), 'yfym_collection' );
+			if ( is_array( $collections_arr ) ) {
+				foreach ( $collections_arr as $cur_collection ) {
+					$result_xml .= new Y4YM_Get_Paired_Tag( $tag_name, $cur_collection->term_id );
+				}
+			}
+			$result_xml = apply_filters(
+				'y4ym_f_variable_tag_collectionid',
+				$result_xml,
+				[
+					'product' => $this->get_product(),
+					'offer' => $this->get_offer()
+				],
+				$this->get_feed_id()
+			);
+		}
+		return $result_xml;
+
+	}
+
+}

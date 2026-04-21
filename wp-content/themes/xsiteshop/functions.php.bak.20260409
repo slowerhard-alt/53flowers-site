@@ -1,0 +1,1253 @@
+<?
+define("IS_CHECK", true);
+
+ini_set("session.gc_maxlifetime", 2*24*3600);
+ini_set("session.cookie_lifetime", 2*24*3600);
+
+start_session();
+
+$themename = "Цветы.РУ";
+$shortname = "xs";
+
+ini_set('error_reporting', 1);
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+
+// Исключение инъекций по URL
+require_once("include/xs_urlblock.php");
+
+global $wpdb, $big_data, $woocommerce;
+
+$big_data['mother_term_id'] = 232;
+$big_data['special_term_id'] = 231;
+$big_data['flowers_instock_term_id'] = 462;
+$big_data['prazdnik_term_id'] = 395;
+$big_data['14_fevralya_term_id'] = 433;
+$big_data['den_materi_term_id'] = 432;
+$big_data['present_term_id'] = 264;
+
+// Выход из ЛК
+
+if(isset($_GET['logout']))
+{
+	setcookie("xs_compare", "", time()+3600, "/");
+	wp_logout();
+	wp_redirect(get_bloginfo('url').$_SERVER['REDIRECT_URL']);
+	die();
+}
+
+$big_data['current_url'] = get_bloginfo('url').str_replace(array("?login=failed", "?login=empty"), array("", ""), $_SERVER['REQUEST_URI']);
+$big_data['component_image_path'] = "/wp-content/uploads/xs_components/";
+
+$big_data['admin_product_status'] = [
+	'publish', 
+	//'pending', 
+	//'draft', 
+	//'future', 
+	//'private'
+];
+
+$big_data['current_user'] = wp_get_current_user();
+
+
+function get_hash($h)
+{
+	return md5($h."dknferbvyhu7 agGYbyogtig7D68S TD8S -0-23R0 IH");
+}
+
+// Для плагина Б24
+add_filter('http_request_args', function ($args) {
+    $args['timeout'] = 20;
+
+    return $args;
+}, 100);
+
+// Для плагина Б24 прокидываем ссылки на товары в поле
+add_filter('wc_bitrix24_plugin_deal_fields_before_send', function ($fields, $order) {
+    $linkList = [];
+
+    foreach ($order->get_items() as $item) {
+        $product = $item->get_product();
+
+        $linkList[] = $product->get_permalink($item);
+    }
+
+    $fields['UF_CRM_1668772011'] = $linkList;
+
+    return $fields;
+}, 10, 2);
+
+// Удаляем лишнее из админки, отключаем обновления
+//require_once("include/admin/xs_clear_admin.php");
+
+// Подключение способа оплаты на расчётный счёт
+require_once("include/xs_payment.php");
+
+// Массив полей для настройки темы
+require_once("include/admin/xs_config.php");
+
+// Функция, получающая опции темы
+require_once("include/xs_get_option.php");
+
+// Переопределяем функции складов
+require_once("include/xs_store.php");
+
+// Подключение обработку заказов в админке
+require_once("include/iblock/xs_orders.php");
+
+// Подключение функционала администрирования
+require_once("include/xs_admin.php");
+
+// Подключаем систему кеширования
+require_once("include/xs_cache.php");
+
+// Баннер акций
+require_once("include/iblock/xs_salesline.php");
+
+// Слайдер
+require_once("include/iblock/xs_slider.php");
+
+// Ссылки
+require_once("include/iblock/xs_menu.php");
+
+
+// Баннеры
+//require_once("include/iblock/xs_banners.php");
+
+// Шаблоны для каждой опции
+require_once("include/admin/xs_get_input_option.php");
+
+// Подключаем тему и скрипты
+require_once("include/xs_init.php");
+
+// Подключаем шаблон вывода настроек темы
+require_once("include/admin/xs_mytheme_admin.php");
+
+// Добавляем миниатюры категориям
+require_once("include/xs_thumbnails.php");
+
+// Добавляем новую категорию "Ярлыки"
+require_once("include/iblock/xs_labels.php");
+
+// Добавляем новую категорию "Производители"
+if(xs_get_option('xs_shop_show_producers') == true)
+	require_once("include/iblock/xs_producers.php");
+
+// Добавляем галочку "Включить категорию в футер"
+require_once("include/admin/xs_footer_category.php");
+
+// Ресайз картинок
+require_once("include/xs_resize_img.php");
+
+// Переопределяем вывод цены у товаров
+require_once("include/xs_product_price.php");
+
+// Подключаем избранные товары
+if(xs_get_option('xs_shop_show_favorit') == true)
+	require_once("include/xs_compare.php");
+
+// Подключаем отзывы о магазине
+require_once("include/iblock/xs_reviews.php");
+
+// Добавляем блок "Частые вопросы"
+require_once("include/iblock/xs_faq.php");
+
+// Добавляем блок "Новости"
+require_once("include/iblock/xs_news.php");
+
+// Добавляем блок "Табы"
+require_once("include/iblock/xs_tabs.php");
+
+// Добавляем блок "Товары"
+require_once("include/iblock/xs_product.php");
+
+// Переопределяем вывод атрибутов в вариативных товарах
+require_once("include/xs_variation_attribute.php");
+
+// Интеграция с CRM
+require_once("include/xs_crm.php");
+
+// Обработка поиска
+require_once("include/xs_search.php");
+
+// Регулируем поля в заказе
+require_once("include/xs_fields.php");
+
+// Добавление дополнительных полей в админку товара
+require_once("include/xs_meta_fields.php");
+
+// Удаляем экспорт комментария из заказа в битрикс 
+add_filter('wc_bitrix24_plugin_comment_include_additional_product_data', '__return_false');
+
+
+
+
+$big_data['phones'] = xs_get_option('xs_phone', false, true);
+$big_data['emails'] = xs_get_option('xs_email', false, true);
+$big_data['address'] = xs_get_option('xs_address', false, true);
+$big_data['work'] = xs_get_option('xs_work', false);
+
+$big_data['product_variation_count'] = xs_get_option('xs_product_variation_count');
+
+function pre($ar)
+{
+	echo "<pre>";
+	print_r($ar);
+	echo "</pre>";
+}
+
+
+function is($v)
+{
+	if(!isset($v))
+		return false;
+	
+	if(is_string($v))
+		$v = trim($v);
+	
+	if(!empty($v))
+		return true;
+	else
+		return false;
+}
+
+
+// Работа с get параметрами
+
+function setUrl($url, $varname, $value) // substitute get parameter
+{
+	 if (is_array($varname)) {
+		 foreach ($varname as $i => $n) {
+			$v = (is_array($value))
+				  ? ( isset($value[$i]) ? $value[$i] : NULL ) 
+				  : $value;
+			$url = setUrl($url, $n, $v);
+		 }
+		 return $url;
+	 }
+	 
+	preg_match('/^([^?]+)(\?.*?)?(#.*)?$/', $url, $matches);
+	$gp = (isset($matches[2])) ? $matches[2] : ''; // GET-parameters
+	if (!$gp) return $url."?".$varname."=".$value;
+	
+	$pattern = "/([?&])$varname=.*?(?=&|#|\z)/";
+	if (preg_match($pattern, $gp)) {
+		$substitution = ($value !== '') ? "\${1}$varname=" . preg_quote($value) : '';
+		$newgp = preg_replace($pattern, $substitution, $gp); // new GET-parameters
+		$newgp = preg_replace('/^&/', '?', $newgp); 
+	}
+	else    {
+		$s = ($gp) ? '&' : '?';
+		$newgp = $gp.$s.$varname.'='.$value;
+	}
+   
+	$anchor = (isset($matches[3])) ? $matches[3] : '';
+	$newurl = $matches[1].$newgp.$anchor;
+	return $newurl;
+}
+
+
+// Очистка строки от лишнего кода
+
+function xs_format_string($x)
+{
+	$x = trim($x);
+	$x = stripslashes($x);
+	$x = htmlspecialchars($x);
+	$x = addslashes($x);
+	
+	return $x;
+}
+
+function xs_format($text)
+{
+	if(is_array($text))
+	{
+		foreach($text as $key => $val)
+		{
+			if(is_array($val))
+			{
+				$text[$key] = xs_format($val);
+			}
+			else
+				$text[$key] = xs_format_string($val);
+		}
+	}
+	else
+		$text = xs_format_string($text);
+	
+	return $text;
+}
+
+
+// Склонение существительных после чисел
+
+function format_by_count($count, $form1, $form2, $form3) 
+{
+	$count = abs($count) % 100;
+	$lcount = $count % 10;
+	if ($count >= 11 && $count <= 19) return($form3);
+	if ($lcount >= 2 && $lcount <= 4) return($form2);
+	if ($lcount == 1) return($form1);
+	return $form3;
+}
+
+
+// Устанавливаем количество выводимых товаров на странице
+
+add_filter('loop_shop_per_page', function($cols)
+{
+	global $big_data;
+	
+	$category = get_queried_object();
+	
+	if($category->term_id == $big_data['present_term_id'] || $category->parent == $big_data['present_term_id'])
+		return 20;
+	else
+		return $big_data['device']['is_mobile']
+			? 16
+			: 15;
+});
+
+
+// Меняем имя и адрес отправителя почты
+
+function res_fromname($email){ return get_option('blogname'); }
+add_filter('wp_mail_from_name', 'res_fromname');
+
+function devise_sender_email($original_email_address) { return 'site@'.$_SERVER['HTTP_HOST']; }
+add_filter('wp_mail_from', 'devise_sender_email');
+
+
+// Удаляем Generator из HEAD
+
+add_filter('the_generator', function(){return "";});
+
+
+// Удаляем RSS (feed)
+
+function fb_disable_feed() {
+	wp_redirect(get_option('siteurl'));
+}
+
+add_filter('xmlrpc_enabled', '__return_false');
+
+add_action('do_feed', 'fb_disable_feed', 1);
+add_action('do_feed_rdf', 'fb_disable_feed', 1);
+add_action('do_feed_rss', 'fb_disable_feed', 1);
+add_action('do_feed_rss2', 'fb_disable_feed', 1);
+add_action('do_feed_atom', 'fb_disable_feed', 1);
+remove_action('wp_head', 'feed_links_extra', 3 );
+remove_action('wp_head', 'feed_links', 2 );
+remove_action('wp_head', 'rsd_link' );
+remove_action('wp_head', 'wlwmanifest_link');
+remove_action('wp_head', 'print_emoji_detection_script', 7);
+remove_action('wp_print_styles', 'print_emoji_styles');
+remove_action('admin_print_scripts', 'print_emoji_detection_script');
+remove_action('admin_print_styles', 'print_emoji_styles');
+
+
+add_action('woocommerce_pagenav', 'woocommerce_pagination', 10); 
+
+
+// Получение данных woocommerce
+
+add_action('xs_template_init', 'xs_woocommerce_init');
+
+function xs_woocommerce_init()
+{
+	global $big_data, $woocommerce, $wpdb;
+	
+	$big_data['cart']['count'] = count($woocommerce->cart->cart_contents);
+	
+	if($big_data['cart']['count'] > 0)
+		$big_data['cart']['subtotal'] = $woocommerce->cart->get_cart_subtotal();
+	
+	$big_data['cart']['url'] = wc_get_checkout_url();	
+
+
+	// Получаем дерево категорий в глобальный массив
+
+	$categories = get_terms(array(
+		'taxonomy'		=> 'product_cat',
+		'count'			=> false,
+		'hide_empty'    => false,
+		'exclude'		=> 225,
+		'meta_query'	=> [
+			'relation' => 'OR',
+			[
+				'key' => 'is_hide',
+				'value' => 'y',
+				'compare' => '!='
+			],
+			[
+				'key' => 'is_hide',
+				'compare' => 'NOT EXISTS'
+			]
+		]
+	));
+	
+	foreach($categories as $v)
+	{
+		if($v->term_id != $big_data['flowers_instock_term_id'] || is_user_logged_in())
+			$big_data['categories'][$v->term_id] = $v;
+	}
+
+
+	// Получаем дерево атрибута Размер в глобальный массив
+
+	$sizes = get_terms(array(
+		'taxonomy'		=> [], //['pa_kolichestvo', 'pa_razmer', 'pa_vysota'],
+		'count'			=> false,
+		'hide_empty'    => false,
+	));
+	
+	foreach($sizes as $v)
+		$big_data['sizes'][$v->slug] = $v;
+		
+		
+	// Выводим уведомление о новом отзыве в карточке товара
+
+	if(is_product() && isset($_GET['unapproved']))
+	{
+		wc_add_notice("Ваш отзыв принят, спасибо. Он будет опубликован после проверки администратором.");
+	}
+
+	$big_data['is_front_page'] = is_front_page();
+}
+		
+		
+// Получаем цвета для ярлыков
+
+$label_colors = $wpdb->get_results("SELECT * FROM xsite_termmeta WHERE meta_key = 'xs_label_bg' OR meta_key = 'xs_label_color'");
+
+foreach($label_colors as $v)
+	$big_data['label_colors'][$v->term_id][$v->meta_key] = $v->meta_value;
+
+
+// Регистрируем меню
+
+function register_my_menus(){
+	register_nav_menus(
+		array( 
+			'header-menu' => 'Меню в шапке', 
+			'header-menu-mobile' => 'Меню в шапке (мобильное)', 
+			'menu-zakaz-i-oplata' => 'Заказ и оплата',
+			'menu-dostavka-i-oplata' => 'Доставка цветов',
+			'menu-nashi-kontakti' => 'Наши контакты',
+		)
+	);
+}
+add_action( 'init', 'register_my_menus' );
+
+
+// Удалить всё кроме чисел
+
+function string_to_int($val)
+{
+	return preg_replace('/[^0-9]/', '', $val);
+}
+
+
+// Регистрируем позиции
+
+function mytheme_widgets_init()
+{
+    register_sidebar(array(
+        'name' => __('Левая колонка (магазин)', 'xsite-shop'),
+        'id' => 'shop',
+        'description' => __('При определённой настройке отображается на странице списка товаров. Настройка отображения производится на странице XSiteSHOP -> Магазин', 'xsite-shop'),
+        'before_widget' => '<div class="widget %2$s">',
+        'after_widget' => "</div>",
+        'before_title' => '<div class="widget-title">',
+        'after_title' => '</div>',
+    ));
+    register_sidebar(array(
+        'name' => __('Результаты фильтров (магазин)'),
+        'id' => 'shop-filter-result',
+        'description' => __('При определённой настройке отображается на странице списка товаров. Настройка отображения производится на странице XSiteSHOP -> Магазин', 'xsite-shop'),
+        'before_widget' => '<div class="widget %2$s">',
+        'after_widget' => "</div>",
+        'before_title' => '<div class="widget-title">',
+        'after_title' => '</div>',
+    ));
+}
+
+add_action('widgets_init', 'mytheme_widgets_init');
+
+
+// Работа с датами
+
+function xs_date($date, $show_month_text = true, $show_time = false, $delimiter_time = " в ")
+{
+	$month_label = array(
+		0 => "-",
+		1 => "Января",
+		2 => "Февраля",
+		3 => "Марта",
+		4 => "Апреля",
+		5 => "Мая",
+		6 => "Июня",
+		7 => "Июля",
+		8 => "Августа",
+		9 => "Сентября",
+		10 => "Октября",
+		11 => "Ноября",
+		12 => "Декабря"
+	);
+	
+	if($show_month_text)
+		$d = date("j", strtotime ($date))." ".$month_label[(int)date("m", strtotime ($date))]." ".date("Y", strtotime ($date));
+	else
+		$d = date("j.m.Y", strtotime ($date));
+	
+	if($show_time)
+		$d .= $delimiter_time.date("H:i", strtotime ($date));
+	
+	return $d;
+}	
+
+
+// Обрезаем строку 
+
+function xs_substr($string, $maxlen, $end = "...")
+{
+    $cutStr = (mb_strlen(strip_tags($string), 'utf-8') > $maxlen)
+        ? mb_substr(strip_tags($string), 0, $maxlen, 'utf-8')
+        : $string;
+    
+	return (mb_strlen(strip_tags($string), 'utf-8') > $maxlen) ? $cutStr.$end : $cutStr;
+}
+
+
+// Запускаем сессии
+
+function start_session() 
+{
+	if(!session_id())
+		session_start();
+}
+
+
+// Выдаем системные сообщения
+
+function xs_get_message()
+{
+	start_session();
+	
+	global $xs_error, $xs_good, $error;
+
+	if(isset($error) && is_wp_error($error))
+		$_SESSION['XS_MESSAGES']['error'][] = $error->get_error_message();
+
+	if(isset($xs_error) && is_array($xs_error) && count($xs_error) > 0)
+		foreach($xs_error as $v)
+			$_SESSION['XS_MESSAGES']['error'][] = $v;
+
+	if(isset($xs_good) && is_array($xs_good) && count($xs_good) > 0)
+		foreach($xs_good as $v)
+			$_SESSION['XS_MESSAGES']['good'][] = $v;
+
+	if(isset($_SESSION['XS_MESSAGES']) && is_array($_SESSION['XS_MESSAGES']) && count($_SESSION['XS_MESSAGES']) > 0)
+	{
+		foreach($_SESSION['XS_MESSAGES'] as $type => $ar_messages)
+		{
+			if(is_array($ar_messages) && count($ar_messages) > 0)
+			{
+				?><div class="xs_info_message <?=$type ?>">
+					<div class="container"><?
+				
+						foreach($ar_messages as $k => $message)
+						{
+							?><p><?=nl2br($message) ?></p><?
+							
+							unset($_SESSION['XS_MESSAGES'][$type][$k]);
+						}
+						
+						?><button type="button" class="notice-dismiss" onclick="jQuery(this).parents('.xs_info_message').remove();actual_top_report()"><span class="screen-reader-text">Скрыть это уведомление</span></button>
+					</div>
+				</div><?
+			}
+		}			
+	}
+}
+
+
+// Фиксируем уведомления
+
+function message($text, $type = "good")
+{
+	start_session();
+	
+	if(!isset($_SESSION['XS_MESSAGES'][$type]) || !in_array($text, $_SESSION['XS_MESSAGES'][$type]))
+		$_SESSION['XS_MESSAGES'][$type][] = $text;
+}
+
+
+function get_svg($name, $color = "#000", $return = "echo")
+{
+	if($return == "text")
+		return file_get_contents($_SERVER['DOCUMENT_ROOT']."/wp-content/themes/xsiteshop/templates/icons/".$name.".php", true);
+	else
+		include $_SERVER['DOCUMENT_ROOT']."/wp-content/themes/xsiteshop/templates/icons/".$name.".php";
+}
+
+
+function get_ajax_template($name, $data)
+{
+	global $xs_data;
+	
+	$xs_data = $data;
+	
+	include $_SERVER['DOCUMENT_ROOT']."/wp-content/themes/xsiteshop/load/admin/".$name.".php";
+}
+
+
+// Функция очистки всего кеша
+
+function xs_clear_cache($clean_image = false)
+{
+	if(current_user_can('administrator'))
+	{
+		$dir = $_SERVER['DOCUMENT_ROOT'].'/wp-content/uploads/xs_cache/pages';
+	
+		if ($objs = glob($dir."/*")) 
+			foreach($objs as $obj) 
+				if(!is_dir($obj)) unlink($obj);
+				
+		if($clean_image)
+		{
+			$dir = $_SERVER['DOCUMENT_ROOT'].'/wp-content/uploads/xs_cache/watermark';
+		
+			if ($objs = glob($dir."/*")) 
+				foreach($objs as $obj) 
+					if(!is_dir($obj)) unlink($obj); 
+
+			$dir = $_SERVER['DOCUMENT_ROOT'].'/wp-content/uploads/xs_cache/resize_img';
+		
+			if ($objs = glob($dir."/*")) 
+				foreach($objs as $obj) 
+					if(!is_dir($obj)) unlink($obj);
+		}
+	}
+}
+
+
+// Изменяет символ валюты на буквы
+
+add_filter('woocommerce_currency_symbol', 'change_existing_currency_symbol', 10, 2);
+
+function change_existing_currency_symbol( $currency_symbol, $currency ) 
+{
+    switch( $currency ) 
+	{
+        //case 'RUB': $currency_symbol = 'р.'; break;
+    }
+	
+    return $currency_symbol;
+}
+
+
+// Отключаем вывод товаров с меткой Топ категорий
+
+function xs_filter_products($wp_query) 
+{
+	global $wpdb, $big_data;
+	
+
+	// Получаем список категорий, товары которых нужно скрыть с сайта
+
+	if(!isset($big_data['categories_hide_product']))
+	{
+		$big_data['categories_hide_product'] = [];
+		
+		$categories_hide_product = get_terms(array(
+			'taxonomy'		=> 'product_cat',
+			'count'			=> false,
+			'meta_query'	=> [
+				[
+					'key' => 'is_product_hide',
+					'value' => 'y'
+				]
+			]
+		));
+		
+		foreach($categories_hide_product as $v)
+			$big_data['categories_hide_product'][] = $v->term_id;
+	}
+
+	$ar_not_product_in_term = [];
+	
+	if(isset($big_data['categories_hide_product']) && count($big_data['categories_hide_product']))
+		$ar_not_product_in_term = [
+			'taxonomy' => 'product_cat',
+			'field' => 'id',
+			'operator' => 'NOT IN',
+			'terms' => $big_data['categories_hide_product']
+		];
+	
+	//echo $wp_query->get('post_type');
+	
+	if(
+		!is_admin() && 
+		(
+			$wp_query->get('post_type') == 'product' || 
+			(
+				$wp_query->is_main_query() && 
+				isset($wp_query->query_vars['product_cat']) && 
+				!is_product()
+			)
+		)
+	)
+	{
+		$ar_meta_query_stock = [
+			'key' => '_stock_status',
+			'value' => 'instock'
+		];
+		
+		$meta_query = $wp_query->get('meta_query');
+		
+		if(is_array($meta_query))
+		{
+			$is_set = true;
+			
+			foreach($meta_query as $v)
+				if(isset($v['key']) && $v['key'] == '_stock_status' && isset($v['value']) && $v['value'] == 'instock')
+					$is_set = false;
+			
+			if($is_set)
+				$meta_query[] = $ar_meta_query_stock;
+		}
+		else
+			$meta_query = [$ar_meta_query_stock];
+		
+		//pre($meta_query);
+		
+		$wp_query->set('meta_query', $meta_query);
+	}	
+
+	
+	if(!is_admin() && $wp_query->is_main_query() && isset($wp_query->query_vars['product_cat']) && !is_product()) 
+	{
+		$tax_query = $wp_query->get('tax_query');
+		
+		if($tax_query && !empty($tax_query) && is_array($tax_query))
+		{
+			$category = get_queried_object();
+			
+			
+			if($category->term_id == $big_data['special_term_id'])
+			{
+				$_tax_query = [
+					[
+						'taxonomy' => 'product_tag',
+						'field' => 'id',
+						'terms' => 357
+					],
+				];
+			
+				if(count($ar_not_product_in_term))
+					$_tax_query[] = $ar_not_product_in_term;
+					
+				$arg = array( 
+					'tax_query' => $_tax_query, 
+					'posts_per_page' => 99,
+					'post_type' => 'product',
+				);
+			}
+			elseif($category->term_id == $big_data['mother_term_id'])
+			{
+				$_tax_query = [
+					[
+						'taxonomy' => 'product_tag',
+						'field' => 'id',
+						'terms' => 367
+					],
+				];
+			
+				if(count($ar_not_product_in_term))
+					$_tax_query[] = $ar_not_product_in_term;
+					
+				$arg = array( 
+					'tax_query' => $_tax_query, 
+					'posts_per_page' => 99,
+					'post_type' => 'product',
+				);
+			}
+			else
+			{
+				$_tax_query = [
+					[
+						'taxonomy' => 'product_tag',
+						'field' => 'id',
+						'terms' => 291
+					],
+				];
+
+				if(count($ar_not_product_in_term))
+					$_tax_query[] = $ar_not_product_in_term;
+					
+				$arg = array( 
+					'tax_query' => $_tax_query, 
+					'meta_query' => [
+						[
+							'key' => '_yoast_wpseo_primary_product_cat',
+							'value' => $category->term_id
+						],
+						[
+							'key' => '_stock_status',
+							'value' => 'instock'
+						],
+					],
+					'posts_per_page' => 99,
+					'post_type' => 'product',
+				);
+			}
+
+			if($category->term_id != $big_data['flowers_instock_term_id'])
+			{
+				$top_products = new WP_Query($arg);
+				
+				if($top_products->have_posts())
+				{
+					while($top_products->have_posts())
+					{
+						$top_products->the_post();
+						global $product;
+						$big_data['top_products'][] = $product->get_id();
+					}
+				}
+			}
+
+			if($category->term_id == $big_data['flowers_instock_term_id'])
+			{
+				$wp_query->set('product_cat', '');
+				$wp_query->set('queried_object', []);
+				$wp_query->set('queried_object_id', '');
+				$wp_query->set('post_type', 'product');
+				$wp_query->set('query', []);
+
+				$tax_query[] = [
+					'taxonomy' => 'product_tag',
+					'field' => 'id',
+					'terms' => 328,
+					'operator' => 'NOT IN'
+				];
+				
+				$meta_query = $wp_query->get('meta_query');
+				
+				if(is_array($meta_query))
+					$meta_query = [];
+				
+				foreach($meta_query as $k => $v)
+					if($v['key'] == '_stock_status')
+						unset($meta_query[$k]);
+			
+				$meta_query['flowers_instock'] = [
+					[
+						'key' => '_is_flowers_instock',
+						'value' => 'y',
+						'compare' => '='
+					]
+				];
+				
+				$wp_query->set('meta_query', $meta_query);
+			}
+			elseif($category->term_id == $big_data['special_term_id'])
+			{	
+				$wp_query->set('product_cat', '');
+				$wp_query->set('queried_object', []);
+				$wp_query->set('queried_object_id', '');
+				$wp_query->set('post_type', 'product');
+				$wp_query->set('query', []);
+
+				$tax_query[] = [
+					'taxonomy' => 'product_tag',
+					'field' => 'id',
+					'terms' => 328,
+					'operator' => 'NOT IN'
+				];
+				
+				$meta_query = $wp_query->get('meta_query');
+				
+				$meta_query[] = [
+					[
+						'key' => '_size_sale',
+						'value' => xs_get_option('xs_price_cpecial'),
+						'compare' => '>=',
+						'type' => 'NUMERIC'
+					]
+				];
+				
+				$wp_query->set('meta_query', $meta_query);
+			}
+			elseif($category->term_id == 413)
+			{
+				$tax_query = [];
+				$wp_query->set('product_cat', '');
+				$wp_query->set('queried_object', []);
+				$wp_query->set('queried_object_id', '');
+				$wp_query->set('post_type', 'product');
+				$wp_query->set('query', []);
+				
+				$meta_query = $wp_query->get('meta_query');
+				$meta_query[] = [
+					[
+						'key' => 'top_category',
+						'value' => '"413"',
+						'compare' => 'LIKE'
+					]
+				];
+				
+				$wp_query->set('meta_query', $meta_query);
+				$big_data['top_products'] = [];
+			}
+			else
+			{
+				$tax_query[] = [
+					'taxonomy' => 'product_tag',
+					'field' => 'id',
+					'terms' => 328,
+					'operator' => 'NOT IN'
+				];
+			}
+			
+			if(count($ar_not_product_in_term))
+				$tax_query[] = $ar_not_product_in_term;
+			
+			$wp_query->set('tax_query', $tax_query);
+			
+			if(isset($big_data['top_products']) && count($big_data['top_products']) > 0)
+				$wp_query->set('post__not_in', $big_data['top_products']);
+			
+			if(is_super_admin())
+				$wp_query->set('post_status', $big_data['admin_product_status']);
+		}
+	}
+	elseif(!is_admin() && count($ar_not_product_in_term) && $wp_query->get('post_type') == 'product')
+	{
+		$tax_query = $wp_query->get('tax_query');
+		
+		if(is_array($tax_query))
+			$tax_query[] = $ar_not_product_in_term;
+		else
+			$tax_query = [$ar_not_product_in_term];
+		
+		$wp_query->set('tax_query', $tax_query);
+	}
+}
+
+
+// Сортировка товаров
+
+add_filter('pre_get_posts', 'xs_filter_products');
+
+add_filter('woocommerce_default_catalog_orderby_options', 'xs_woocommerce_catalog_orderby');
+add_filter('woocommerce_catalog_orderby', 'xs_woocommerce_catalog_orderby');
+
+
+function xs_woocommerce_catalog_orderby($sortby) 
+{
+	/*
+	$sortby = [
+		'price' => 'Цена (низкая — высокая)',
+		'price-desc' => 'Цена (высокая — низкая)',
+		'title' => 'Название А-Я',
+		'title-desc' => 'Название Я-А',
+	];
+	*/
+	
+	$sortby = [
+		'xs_price' => 'Цена (низкая — высокая)',
+		'xs_price-desc' => 'Цена (высокая — низкая)',
+		'xs_name' => 'Название А-Я',
+		'xs_name-desc' => 'Название Я-А',
+	];
+	
+	return $sortby;
+}
+
+add_filter('woocommerce_get_catalog_ordering_args', 'xs_woocommerce_get_catalog_ordering_args', 10, 3);
+
+function xs_woocommerce_get_catalog_ordering_args($args) 
+{
+	global $product, $woocommerce;
+
+	//if(isset($_SESSION['xs_catalog_orderby']) && !empty($_SESSION['xs_catalog_orderby']))
+	//	$orderby_value = isset($_GET['orderby']) ? wc_clean($_GET['orderby']) : $_SESSION['xs_catalog_orderby'];
+	//else
+	
+	$orderby_value = isset($_GET['orderby']) ? wc_clean($_GET['orderby']) : 'xs_price';
+	
+
+	//$_SESSION['xs_catalog_orderby'] = $orderby_value;
+
+	if('default' == $orderby_value || 'xs_price' == $orderby_value) 
+	{
+		$args['orderby'] = 'meta_value_num';
+		$args['order'] = 'ASC';
+		$args['meta_key'] = '_price';
+	}
+	elseif('xs_price-desc' == $orderby_value)
+	{
+		$args['orderby'] = 'meta_value_num';
+		$args['order'] = 'DESC';
+		$args['meta_key'] = '_price';
+	}	
+	elseif('xs_name' == $orderby_value)
+	{
+		$args = [
+			'orderby' => 'post_title',
+			'order' => 'ASC',
+		];
+	}
+	elseif('xs_name-desc' == $orderby_value)
+	{
+		$args = [
+			'orderby' => 'post_title',
+			'order' => 'DESC',
+		];
+	}
+	
+	return $args;
+}
+
+
+
+$big_data['list_product_btn'] = xs_get_option('xs_product_btn');
+$big_data['list_product_top_btn'] = xs_get_option('xs_product_top_btn');
+
+
+// Добавление сразу нескольких товаров в корзину
+
+function woocommerce_maybe_add_multiple_products_to_cart() {
+// Make sure WC is installed, and add-to-cart qauery arg exists, and contains at least one comma.
+if ( ! class_exists( 'WC_Form_Handler' ) || empty( $_REQUEST['add-to-cart'] ) || false === strpos( $_REQUEST['add-to-cart'], ',' ) ) {
+return;
+}
+
+// Remove WooCommerce's hook, as it's useless (doesn't handle multiple products).
+remove_action( 'wp_loaded', array( 'WC_Form_Handler', 'add_to_cart_action' ), 20 );
+
+$product_ids = explode( ',', $_REQUEST['add-to-cart'] );
+$count       = count( $product_ids );
+$number      = 0;
+
+foreach ( $product_ids as $product_id ) {
+if ( ++$number === $count ) {
+// Ok, final item, let's send it back to woocommerce's add_to_cart_action method for handling.
+$_REQUEST['add-to-cart'] = $product_id;
+
+return WC_Form_Handler::add_to_cart_action();
+}
+
+$product_id        = apply_filters( 'woocommerce_add_to_cart_product_id', absint( $product_id ) );
+$was_added_to_cart = false;
+$adding_to_cart    = wc_get_product( $product_id );
+
+if ( ! $adding_to_cart ) {
+continue;
+}
+
+$add_to_cart_handler = apply_filters( 'woocommerce_add_to_cart_handler', $adding_to_cart->product_type, $adding_to_cart );
+
+/*
+* Sorry.. if you want non-simple products, you're on your own.
+*
+* Related: WooCommerce has set the following methods as private:
+* WC_Form_Handler::add_to_cart_handler_variable(),
+* WC_Form_Handler::add_to_cart_handler_grouped(),
+* WC_Form_Handler::add_to_cart_handler_simple()
+*
+* Why you gotta be like that WooCommerce?
+*/
+if ( 'simple' !== $add_to_cart_handler ) {
+continue;
+}
+
+// For now, quantity applies to all products.. This could be changed easily enough, but I didn't need this feature.
+$quantity          = empty( $_REQUEST['quantity'] ) ? 1 : wc_stock_amount( $_REQUEST['quantity'] );
+$passed_validation = apply_filters( 'woocommerce_add_to_cart_validation', true, $product_id, $quantity );
+
+if ( $passed_validation && false !== WC()->cart->add_to_cart( $product_id, $quantity ) ) {
+wc_add_to_cart_message( array( $product_id => $quantity ), true );
+}
+}
+}
+
+// Fire before the WC_Form_Handler::add_to_cart_action callback.
+add_action( 'wp_loaded',        'woocommerce_maybe_add_multiple_products_to_cart', 15 );
+
+
+// Выводим админ панель для авторизованных пользователей
+
+if(is_user_logged_in())
+	add_filter('woocommerce_disable_admin_bar', '__return_false', 25);
+
+
+function is_row($row)
+{
+	if(!is_user_logged_in())
+		return false;
+	
+	global $big_data;
+	
+	if(!isset($big_data['report_rows']))
+		$big_data['report_rows'] = get_user_meta($big_data['current_user']->ID, 'xs_rows', true);
+	
+	return !$big_data['report_rows'] || !is_array($big_data['report_rows']) || count($big_data['report_rows']) == 0 || (isset($big_data['report_rows'][$row]) && $big_data['report_rows'][$row] == 'y');
+}
+
+
+// Проверка корректности номера телефона
+
+function is_phone_valid($phone)
+{
+	$phone = preg_replace('/[^0-9]/', '', $phone);
+	
+	if(mb_strlen($phone, 'utf-8') < 11)
+		return false;
+	elseif(substr($phone, 0, 3) == '789')
+		return false;
+
+	return true;
+}
+
+
+// Увеличение времени хранения авторизации
+
+function loggedin_time($expirein) 
+{
+    return 2*24*3600; 
+}
+
+add_filter('auth_cookie_expiration', 'loggedin_time');
+function wpplus_disable_right_click() {
+
+    echo '<script>';
+    echo 'document.oncontextmenu = function() { return false; }';
+    echo '</script>';
+
+}
+
+// Сортируем id товаров моего склада в порядке убывания
+
+function sort_ms_ids($ms_ids = "")
+{
+	if(isset($ms_ids) && !empty($ms_ids))
+	{
+		$ar_component_ids = [];
+		
+		$e = explode(",", $ms_ids);
+		
+		foreach($e as $v)
+		{
+			$_e = explode(" ", $v);
+			
+			foreach($_e as $_v)
+				if(!empty(trim($_v)))
+					$ar_component_ids[] = trim($_v);
+		}
+			
+		$ar_component_ids = array_unique($ar_component_ids);
+		
+		arsort($ar_component_ids);
+		
+		$ms_ids = implode(", ", $ar_component_ids);
+	}
+	
+	return $ms_ids;
+}
+
+function wpassist_remove_block_library_css()
+{
+	wp_dequeue_style('wp-block-library');
+	wp_dequeue_style('classic-theme-styles');
+	wp_dequeue_script('jquery-blockui-js');
+	wp_enqueue_script('wc-add-to-cart');
+}
+
+add_action( 'wp_enqueue_scripts', 'wpassist_remove_block_library_css');
+
+
+// Отправка сообщений в телеграм
+	
+function message_to_telegram($text, $chat_id = -4730974561)
+{
+	// чтобы узнать chat_id: https://api.telegram.org/bot7855068396:AAGP3qUu3lN1BsDC800AyT4THo14TFtbVd0/getUpdates
+	
+	//$chat_id = 290920582; // simanov_al
+	//$chat_id = 102357228; // hardnex, Александр
+	//$chat_id = -4730974561; // Группа
+	
+	if(!$chat_id)
+		return false;
+	
+	$text = str_replace(
+		[
+			"_",
+			"*",
+			"[",
+			"]",
+			"{",
+			"}",
+			"`",
+			"|",
+			"=",
+			"#",
+			">",
+			"~",
+			"!",
+		], 
+		[
+			"\\_",
+			"\\*",
+			"\\[",
+			"\\]",
+			"\\{",
+			"\\}",
+			"\\`",
+			"\\|",
+			"\\=",
+			"\\#",
+			"\\>",
+			"\\~",
+			"\\!",
+		], 
+		$text
+	);
+	
+	$ch = curl_init('https://api.telegram.org/bot7855068396:AAGP3qUu3lN1BsDC800AyT4THo14TFtbVd0/sendMessage');
+	curl_setopt_array($ch, array(
+		CURLOPT_RETURNTRANSFER => true,
+		CURLOPT_POST => true,
+		CURLOPT_HEADER => false,
+		CURLOPT_HTTPHEADER => array(
+			'Host: api.telegram.org',
+			'Content-Type: multipart/form-data'
+		),
+		CURLOPT_POSTFIELDS => array(
+			'chat_id' => $chat_id, 
+			'text' => $text,
+		),
+		CURLOPT_TIMEOUT => 0,
+		CURLOPT_CONNECTTIMEOUT => 6000,
+		CURLOPT_SSL_VERIFYPEER => false
+	));
+	$r = curl_exec($ch);
+	curl_close($ch);
+	
+	$r = json_decode($r, true);
+	
+	if(is_array($r) && isset($r['ok']) && $r['ok'])
+		return true;
+	else
+		return false;
+}
+	
+if(
+	mb_strpos($big_data['current_url'], '/load/admin/', 0, 'utf-8') === false && 
+	!(isset($_GET['page']) && $_GET['page'] == 'store') && 
+	session_id()
+)
+	session_write_close();

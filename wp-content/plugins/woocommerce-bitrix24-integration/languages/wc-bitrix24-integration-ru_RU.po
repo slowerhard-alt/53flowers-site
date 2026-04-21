@@ -1,0 +1,886 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: Woocommerce - Bitrix24 CRM - Integration\n"
+"POT-Creation-Date: 2024-08-15 13:59+0300\n"
+"PO-Revision-Date: 2024-08-15 14:00+0300\n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"Language: ru_RU\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: Poedit 2.4.2\n"
+"X-Poedit-Basepath: ..\n"
+"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
+"%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
+"X-Poedit-KeywordsList: esc_html__;esc_html_e;esc_attr_e\n"
+"X-Poedit-SearchPath-0: includes\n"
+"X-Poedit-SearchPath-1: admin\n"
+"X-Poedit-SearchPath-2: woocommerce-bitrix24-integration.php\n"
+"X-Poedit-SearchPathExcluded-0: node_modules\n"
+"X-Poedit-SearchPathExcluded-1: vendor\n"
+
+#: admin/AjaxActions/ItglxWcBitrix24AjaxBulkOrdersSent.php:24
+msgid "The webhook is not specified or the main checkbox is not enabled."
+msgstr "Не указан вебхук или не включен основной чекбокс."
+
+#: admin/AjaxActions/ItglxWcBitrix24AjaxBulkOrdersSent.php:92
+#: admin/WcBulkOrderToCrm.php:107
+#, php-format
+msgid ""
+"%s orders registered for sending to CRM, the dispatch time depends on the "
+"number of orders."
+msgstr ""
+"%s заказов зарегистрировано для отправки в CRM, время обработки зависит от "
+"количества заказов."
+
+#: admin/AjaxActions/ItglxWcBitrix24AjaxClearSendQueue.php:29
+msgid "The send queue was cleared successfully."
+msgstr "Очередь отправки успешно очищена."
+
+#: admin/AjaxActions/ItglxWcBitrix24AjaxRemoveLinksWithOrders.php:39
+msgid "Links successfully removed."
+msgstr "Связи успешно удалены."
+
+#: admin/AjaxActions/ItglxWcBitrix24AjaxSaveSettings.php:29
+msgid "Settings successfully updated."
+msgstr "Настройки успешно обновлены."
+
+#: admin/AjaxActions/ItglxWcBitrix24AjaxValidateWebhook.php:28
+#: admin/AjaxActions/ItglxWcBitrix24AjaxValidateWebhook.php:34
+#: admin/AjaxActions/ItglxWcBitrix24AjaxValidateWebhook.php:49
+#: admin/AjaxActions/ItglxWcBitrix24AjaxValidateWebhook.php:55
+msgid "ERROR"
+msgstr "ОШИБКА"
+
+#: admin/AjaxActions/ItglxWcBitrix24AjaxValidateWebhook.php:29
+msgid "To integrate with Bitrix24, your must fill webhook field."
+msgstr "Для интеграции с Bitrix24 необходимо указать вебхук."
+
+#: admin/AjaxActions/ItglxWcBitrix24AjaxValidateWebhook.php:35
+msgid "Web hook url is not valid."
+msgstr "Неверный url веб-хука."
+
+#: admin/AjaxActions/ItglxWcBitrix24AjaxValidateWebhook.php:50
+msgid "Insufficient permissions. Check CRM settings."
+msgstr "Недостаточно прав. Проверьте настройки CRM. Обновите страницу."
+
+#: admin/AjaxActions/ItglxWcBitrix24AjaxValidateWebhook.php:56
+msgid "Response CRM is not valid. Please check web hook link."
+msgstr "Неверный ответ CRM. Проверьте веб-хук."
+
+#: admin/AjaxActions/ItglxWcBitrix24AjaxValidateWebhook.php:64
+msgid "Webhook check is successfully."
+msgstr "Проверка вебхука прошла успешно."
+
+#: admin/PageParts/AdditionalSection.php:15 admin/WcSettingsPage.php:296
+msgid "Additional"
+msgstr "Дополнительно"
+
+#: admin/PageParts/AdditionalSection.php:20
+msgid "Are you sure you want to do this? The action cannot be undone."
+msgstr "Вы уверены, что хотите это сделать? Действие нельзя отменить."
+
+#: admin/PageParts/AdditionalSection.php:21
+#: admin/PageParts/AdditionalSection.php:43
+#: admin/PageParts/AdditionalSection.php:52
+#: admin/PageParts/AdditionalSection.php:60
+msgid "Wait..."
+msgstr "Подождите..."
+
+#: admin/PageParts/AdditionalSection.php:23
+msgid "Remove from all orders the link with the deal / lead from Bitrix24"
+msgstr "Удалить из всех заказов связь со сделкой/лидом из Битрикс24"
+
+#: admin/PageParts/AdditionalSection.php:27
+msgid ""
+"You can use this if, for some reason, you want to remove information about "
+"the created deal / lead in Bitrix24 from all orders on the site, so you get "
+"a situation as if orders have not yet been sent to Bitrix24."
+msgstr ""
+"Вы можете использовать это, если по какой-то причине вы хотите удалить из "
+"всех заказов на сайте информацию о созданной сделке / лиде в Bitrix24, таким "
+"образом получится ситуация, как будто заказы еще не отправлялись в Bitrix24."
+
+#: admin/PageParts/AdditionalSection.php:37
+msgid "orders are in the process of being sent to CRM"
+msgstr "заказов находятся в процессе отправки в CRM"
+
+#: admin/PageParts/AdditionalSection.php:42
+msgid "Are you sure you want to do this? This will clear the send queue."
+msgstr "Вы уверены, что хотите это сделать? Это очистит очередь отправки."
+
+#: admin/PageParts/AdditionalSection.php:45
+msgid "Clear send queue"
+msgstr "Очистить очередь отправки"
+
+#: admin/PageParts/AdditionalSection.php:55
+msgid "Register all orders for sending to the CRM"
+msgstr "Зарегистрировать все заказы для отправки в CRM"
+
+#: admin/PageParts/AdditionalSection.php:63
+msgid "Register orders not yet sent to the CRM for sending to the CRM"
+msgstr "Зарегистрировать еще не отправленные в CRM заказы для отправки в CRM"
+
+#: admin/PageParts/AdditionalSection.php:68
+msgid ""
+"You can use this to re-send data or to send old orders. This is the same as "
+"sending via bulk actions with orders in a list."
+msgstr ""
+"Вы можете использовать это, чтобы повторно отправить данные или, чтобы "
+"отправить старые заказы. Аналогично отправке через массовые действия с "
+"заказами в списке."
+
+#: admin/PageParts/ContactSettings.php:32
+#: admin/PageParts/ContactSettings.php:95
+msgid "Main address"
+msgstr "Фактический адрес"
+
+#: admin/PageParts/ContactSettings.php:34
+#: admin/PageParts/ContactSettings.php:97
+msgid "Delivery address"
+msgstr "Адрес доставки"
+
+#: admin/PageParts/DealSettings.php:38 admin/PageParts/LeadSettings.php:38
+#: includes/OrderToBitrix24.php:543 includes/OrderToBitrix24.php:645
+msgid "Order"
+msgstr "Заказ"
+
+#: admin/PageParts/DealSettings.php:107 admin/PageParts/LeadSettings.php:100
+msgid "You can use the following shortcodes in this field:"
+msgstr "Вы можете использовать следующие шорткоды в этом поле:"
+
+#: admin/PageParts/DealSettings.php:124 admin/PageParts/LeadSettings.php:117
+msgid ""
+"you can specify several, separated by commas, then the requests will be "
+"distributed sequentially"
+msgstr ""
+"вы можете указать несколько, через запятую, тогда обращения будут "
+"распределяться последовательно"
+
+#: admin/PageParts/LicenseSection.php:19
+msgid "License verification"
+msgstr "Проверка лицензии"
+
+#: admin/PageParts/LicenseSection.php:22
+msgid "verified"
+msgstr "проверена"
+
+#: admin/PageParts/LicenseSection.php:26
+msgid "please verify your license key"
+msgstr "пожалуйста, укажите лицензионный ключ"
+
+#: admin/PageParts/LicenseSection.php:36
+msgid "License key"
+msgstr "Лицензионный ключ"
+
+#: admin/PageParts/LicenseSection.php:49
+msgid "Where Is My License Key?"
+msgstr "Где найти лицензионный ключ?"
+
+#: admin/PageParts/LicenseSection.php:57
+msgid "Verify"
+msgstr "Активировать"
+
+#: admin/PageParts/LicenseSection.php:61
+msgid "Unverify"
+msgstr "Деактивировать"
+
+#: admin/PageParts/RenderFields.php:122
+msgid "Default value"
+msgstr "По умолчанию"
+
+#: admin/PageParts/RenderFields.php:127 admin/PageParts/RenderFields.php:174
+#: admin/PageParts/RenderFields.php:324 admin/WcSettingsPage.php:529
+#: admin/WcSettingsPage.php:565 admin/WcSettingsPage.php:771
+#: admin/WcSettingsPage.php:831
+msgid "Not chosen"
+msgstr "Не выбрано"
+
+#: admin/PageParts/RenderFields.php:141
+msgid "Populate value (optional)"
+msgstr "Заполнить значение (необязательно)"
+
+#: admin/PageParts/RenderFields.php:154 admin/PageParts/RenderFields.php:204
+msgid "Update when send status change event or order changed"
+msgstr "Обновление при отправке события изменения статуса или изменении заказа"
+
+#: admin/PageParts/RenderFields.php:293 admin/WcSettingsPage.php:900
+msgid "Default pipeline"
+msgstr "По умолчанию"
+
+#: admin/PageParts/RenderFields.php:325
+msgid "Prepared values (main fields)"
+msgstr "Подготовленные значения (основные поля)"
+
+#: admin/PageParts/RenderFields.php:337
+msgid "Prepared values (additional)"
+msgstr "Подготовленные значения (дополнительно)"
+
+#: admin/PageParts/RenderFields.php:349
+msgid "Prepared values (buyer user data)"
+msgstr "Подготовленные значения (данные пользователя покупателя)"
+
+#: admin/PageParts/RenderFields.php:366
+msgid "Prepared values (to pass values of product attributes)"
+msgstr "Подготовленные значения (для передачи значений атрибутов товара)"
+
+#: admin/PageParts/RenderFields.php:380
+msgid "Raw meta values"
+msgstr "Чистые значения меты"
+
+#: admin/PageParts/RenderFields.php:399 admin/PageParts/RenderFields.php:406
+msgid "Full name (last name + first name)"
+msgstr "Полное имя (фамилия + имя)"
+
+#: admin/PageParts/RenderFields.php:400 admin/PageParts/RenderFields.php:407
+msgid "Full name (first name + last name)"
+msgstr "Полное имя (имя + фамилия)"
+
+#: admin/PageParts/RenderFields.php:420
+msgid "Order coupon list"
+msgstr "Список купонов"
+
+#: admin/PageParts/RenderFields.php:421
+msgid "Order number"
+msgstr "Номер заказа"
+
+#: admin/PageParts/RenderFields.php:422
+msgid "Total weight of items in the order"
+msgstr "Суммарный вес позиций в заказе"
+
+#: admin/PageParts/RenderFields.php:423
+msgid "Name of shipping method"
+msgstr "Название способа доставки"
+
+#: admin/PageParts/RenderFields.php:424
+msgid "Name of payment method"
+msgstr "Название способа оплаты"
+
+#: admin/PageParts/RenderFields.php:425
+msgid "Link to order in the admin panel"
+msgstr "Ссылка на заказ в админке"
+
+#: admin/PageParts/RenderFields.php:428
+msgid "Dokan Vendor"
+msgstr "Dokan производитель"
+
+#: admin/PageParts/RenderFields.php:432
+msgid "WC Marketplace Vendor"
+msgstr ""
+
+#: admin/PageParts/RenderFields.php:436
+msgid "Voucher code"
+msgstr "Ваучер код"
+
+#: admin/PageParts/RenderFields.php:440
+msgid "ATUM (order items purchase amount)"
+msgstr ""
+
+#: admin/PageParts/RenderFields.php:443
+msgid "Utm source"
+msgstr ""
+
+#: admin/PageParts/RenderFields.php:444
+msgid "Utm medium"
+msgstr ""
+
+#: admin/PageParts/RenderFields.php:445
+msgid "Utm campaign"
+msgstr ""
+
+#: admin/PageParts/RenderFields.php:446
+msgid "Utm content"
+msgstr ""
+
+#: admin/PageParts/RenderFields.php:447
+msgid "Utm term"
+msgstr ""
+
+#: admin/PageParts/RenderFields.php:449
+msgid "Google client ID"
+msgstr ""
+
+#: admin/PageParts/RenderFields.php:450
+msgid "Yandex client ID"
+msgstr ""
+
+#: admin/PageParts/RenderFields.php:451
+msgid "Roistat visit cookie value"
+msgstr ""
+
+#: admin/PageParts/RenderFields.php:452
+msgid "Facebook \"_fbp\" cookie value"
+msgstr ""
+
+#: admin/PageParts/RenderFields.php:453
+msgid "Facebook \"_fbc\" cookie value"
+msgstr ""
+
+#: admin/PageParts/RenderFields.php:455
+msgid "Name of the first item in the order"
+msgstr "Название первого товара в заказе"
+
+#: admin/PageParts/RenderFields.php:456
+msgid "List sku separated by commas"
+msgstr "Список артикулов через запятую"
+
+#: admin/PageParts/RenderFields.php:457
+msgid "List title separated by commas"
+msgstr "Список наименований через запятую"
+
+#: admin/PageParts/RenderFields.php:465
+msgid "Customer User ID"
+msgstr ""
+
+#: admin/PageParts/RenderFields.php:466
+msgid "Customer Username"
+msgstr ""
+
+#: admin/PageParts/RenderFields.php:467
+msgid "Customer Date Created"
+msgstr ""
+
+#: admin/PageParts/RenderFields.php:468
+msgid "Customer Role"
+msgstr ""
+
+#: admin/PageParts/RenderFields.php:469
+msgid "Customer Total Orders"
+msgstr ""
+
+#: admin/PageParts/RenderFields.php:470
+msgid "Customer Total Spent"
+msgstr ""
+
+#: admin/PageParts/RenderFields.php:471
+msgid "Customer last order date"
+msgstr ""
+
+#: admin/Product/Bitrix24ProductDataTab.php:22
+#: admin/ShopOrderTableColumn.php:26 admin/WcSettingsPage.php:67
+#: admin/WcSettingsPage.php:68
+msgid "Bitrix24"
+msgstr "Bitrix24"
+
+#: admin/Product/Bitrix24ProductDataTab.php:41
+msgid "product ID"
+msgstr "ID товара"
+
+#: admin/Product/Bitrix24ProductDataTab.php:48
+msgid "Each variation has its own field with information about ID."
+msgstr "У каждой вариации есть свое поле с информацией об ID."
+
+#: admin/ProductVariation/Bitrix24IdFieldVariation.php:25
+msgid "product ID (Bitrix24)"
+msgstr "ID товара (Bitrix24)"
+
+#: admin/ShopOrderTableColumn.php:56
+msgid "lead ID: "
+msgstr "лид ID: "
+
+#: admin/ShopOrderTableColumn.php:59 admin/ShopOrderTableColumn.php:68
+msgid "no data"
+msgstr "нет данных"
+
+#: admin/ShopOrderTableColumn.php:65
+msgid "deal ID: "
+msgstr "сделка ID: "
+
+#: admin/WcBulkOrderToCrm.php:34
+msgid "Send to Bitrix24"
+msgstr "Отправить в Bitrix24"
+
+#: admin/WcSettingsPage.php:53 admin/WcSettingsPage.php:85
+msgid "WooCommerce - Bitrix24 CRM - Integration"
+msgstr "WooCommerce - Bitrix24 CRM - Integration"
+
+#: admin/WcSettingsPage.php:55
+msgid "Please verify the license key on the plugin settings page - "
+msgstr "Пожалуйста, укажите лицензионный ключ на странице настроек плагина - "
+
+#: admin/WcSettingsPage.php:59 admin/WcSettingsPage.php:131
+msgid "open"
+msgstr "открыть"
+
+#: admin/WcSettingsPage.php:87
+msgid "Not loaded `PucFactory`. Plugin updates not working."
+msgstr "Не загружен `PucFactory`. Обновления плагина не работают."
+
+#: admin/WcSettingsPage.php:98
+msgid "Fields cache updated successfully."
+msgstr "Кеш полей успешно обновлен."
+
+#: admin/WcSettingsPage.php:117
+msgid ""
+"Please note that `Status mapping` is not configured, orders will not be sent."
+msgstr ""
+"Пожалуйста, обратите внимание, `Соответствие статусов` не настроено, заказы "
+"не будут отправляться."
+
+#: admin/WcSettingsPage.php:124
+msgid "Integration settings"
+msgstr "Настройка интеграции"
+
+#: admin/WcSettingsPage.php:129
+msgid "Plugin documentation: "
+msgstr "Документация плагина: "
+
+#: admin/WcSettingsPage.php:130
+msgid ""
+"https://itgalaxy.company/en/software/woocommerce-bitrix24-crm-integration/"
+"woocommerce-bitrix24-crm-integration-instructions/"
+msgstr ""
+"https://itgalaxy.company/software/wordpress-woocommerce-bitrix24-crm-"
+"%d0%b8%d0%bd%d1%82%d0%b5%d0%b3%d1%80%d0%b0%d1%86%d0%b8%d1%8f/woocommerce-"
+"bitrix24-crm-%d0%b8%d0%bd%d1%82%d0%b5%d0%b3%d1%80%d0%b0%d1%86%d0%b8%d1%8f-"
+"%d0%b8%d0%bd%d1%81%d1%82%d1%80%d1%83%d0%ba%d1%86%d0%b8%d0%b8/"
+
+#: admin/WcSettingsPage.php:140
+msgid "Enable"
+msgstr "Включить"
+
+#: admin/WcSettingsPage.php:155
+msgid "Inbound web hook"
+msgstr "Входящий веб-хук"
+
+#: admin/WcSettingsPage.php:167
+msgid "The following permissions are required: CRM, Chat and Notifications"
+msgstr "Требуются следующие права: CRM, Chat and Notifications"
+
+#: admin/WcSettingsPage.php:173
+msgid "Check webhook"
+msgstr "Проверить вебхук"
+
+#: admin/WcSettingsPage.php:181
+msgid "Type"
+msgstr "Тип"
+
+#: admin/WcSettingsPage.php:187
+msgid "Lead"
+msgstr "Лид"
+
+#: admin/WcSettingsPage.php:190
+msgid "Deal + Contact"
+msgstr "Сделка + Контакт"
+
+#: admin/WcSettingsPage.php:193
+msgid ""
+"Deal + Contact (without searching for an existing contact, always create a "
+"new one)"
+msgstr ""
+"Сделка + Контакт (без поиска существующего контакта, всегда создавать новый)"
+
+#: admin/WcSettingsPage.php:196
+msgid "Deal + Company"
+msgstr "Сделка + Компания"
+
+#: admin/WcSettingsPage.php:199
+msgid "Deal + Contact + Company"
+msgstr "Сделка + Контакт + Компания"
+
+#: admin/WcSettingsPage.php:202
+msgid "Contact only"
+msgstr "Только контакт"
+
+#: admin/WcSettingsPage.php:210
+msgid "Send type"
+msgstr "Тип отправки"
+
+#: admin/WcSettingsPage.php:216
+msgid "Immediately upon checkout"
+msgstr "Сразу при оформлении"
+
+#: admin/WcSettingsPage.php:219
+msgid "WP Cron"
+msgstr "WP Cron"
+
+#: admin/WcSettingsPage.php:224
+msgid "The number of registered order submit events pending"
+msgstr "Количество ожидающих зарегистрированных событий отправки заказа"
+
+#: admin/WcSettingsPage.php:235
+msgid "Enable logging"
+msgstr "Включить логирование"
+
+#: admin/WcSettingsPage.php:251
+msgid "Download log"
+msgstr "Скачать лог"
+
+#: admin/WcSettingsPage.php:254
+msgid "Clear log"
+msgstr "Очистить лог"
+
+#: admin/WcSettingsPage.php:265
+msgid "Reload fields data from CRM"
+msgstr "Перезагрузить данные полей из CRM"
+
+#: admin/WcSettingsPage.php:271
+msgid "Lead fields"
+msgstr "Поля лида"
+
+#: admin/WcSettingsPage.php:276
+msgid "Deal fields"
+msgstr "Поля сделки"
+
+#: admin/WcSettingsPage.php:281
+msgid "Contact fields"
+msgstr "Поля контакта"
+
+#: admin/WcSettingsPage.php:286
+msgid "Company fields"
+msgstr "Поля компании"
+
+#: admin/WcSettingsPage.php:291
+msgid "Status mapping"
+msgstr "Соответствие статусов"
+
+#: admin/WcSettingsPage.php:301
+msgid "Bitrix24 -> WooCommerce"
+msgstr "Bitrix24 -> WooCommerce"
+
+#: admin/WcSettingsPage.php:307
+msgid "WooCommerce Memberships"
+msgstr ""
+
+#: admin/WcSettingsPage.php:322 admin/WcSettingsPage.php:326
+#: admin/WcSettingsPage.php:373 admin/WcSettingsPage.php:377
+msgid "Add a link to the order on the site in the comment"
+msgstr "Добавить ссылку на заказ на сайте в комментарии"
+
+#: admin/WcSettingsPage.php:337 admin/WcSettingsPage.php:341
+msgid "Do not fill out the list of products, only the lead amount"
+msgstr "Не заполнять список товаров, только сумму лида"
+
+#: admin/WcSettingsPage.php:354
+msgid "Link to existing contact (search by email/phone)"
+msgstr "Связывать с существующим контактом (поиск по телефону / почте)"
+
+#: admin/WcSettingsPage.php:388 admin/WcSettingsPage.php:392
+msgid "Do not fill out the list of products, only the deal amount"
+msgstr "Не заполнять список товаров, только сумму сделки"
+
+#: admin/WcSettingsPage.php:411
+msgid ""
+"Create / update a contact when user registering / updates profile "
+"information."
+msgstr ""
+"Создание/обновление контакта, когда покупатель регистрируется/обновляет свой "
+"профиль."
+
+#: admin/WcSettingsPage.php:424
+msgid ""
+"Update existing contact when submitting order data (search by phone and "
+"mail)."
+msgstr ""
+"Обновлять существующий контакт при отправке данных заказа (поиск по телефону "
+"и почте)"
+
+#: admin/WcSettingsPage.php:436
+msgid ""
+"When creating a contact, assign a responsible based on the deal (if "
+"specified)."
+msgstr ""
+"При создании контакта назначать ответственного на основании сделки (если "
+"указан)."
+
+#: admin/WcSettingsPage.php:456
+msgid ""
+"Update existing company when submitting order data (search by phone / email)."
+msgstr ""
+"Обновлять существующую компанию при отправке данных заказа (поиск по "
+"телефону / почте)."
+
+#: admin/WcSettingsPage.php:468
+msgid ""
+"When creating a company, assign a responsible based on the deal (if "
+"specified)."
+msgstr ""
+"При создании компании назначать ответственного на основании сделки (если "
+"указан)."
+
+#: admin/WcSettingsPage.php:481
+msgid "Resend product list"
+msgstr "Повторно отправлять список товаров"
+
+#: admin/WcSettingsPage.php:492
+msgid ""
+"Re-send products from the order to the Bitrix24 when the order status "
+"changes. It will be useful if you edit the order."
+msgstr ""
+"Повторно отправлять товары из заказа в Bitrix24, когда меняется статус "
+"заказа. Будет полезно, если вы редактируете состав заказа."
+
+#: admin/WcSettingsPage.php:499
+msgid "Do not post status changes"
+msgstr "Не отправлять изменения статуса"
+
+#: admin/WcSettingsPage.php:513 admin/WcSettingsPage.php:746
+#: admin/WcSettingsPage.php:783
+msgid "For lead"
+msgstr "Для лида"
+
+#: admin/WcSettingsPage.php:549 admin/WcSettingsPage.php:754
+#: admin/WcSettingsPage.php:791
+msgid "For deal"
+msgstr "Для сделки"
+
+#: admin/WcSettingsPage.php:610 admin/WcSettingsPage.php:614
+msgid "Don't add SKU to the product name"
+msgstr "Не добавлять артикул к названию товара"
+
+#: admin/WcSettingsPage.php:625
+msgid "Send product image"
+msgstr "Отправлять изображение товара"
+
+#: admin/WcSettingsPage.php:629
+msgid ""
+"If a product on the site has a main image, then when creating a product in "
+"Bitrix24, this image will be added to it."
+msgstr ""
+"Если у товара на сайте есть основное изображение, то при создании товара в "
+"Битрикс24, это изображение будет добавлено к нему."
+
+#: admin/WcSettingsPage.php:643
+msgid "Update the product (name) in Bitrix24 when updating on the site"
+msgstr "Обновлять товар (наименование) в Битрикс24 при обновлении на сайте"
+
+#: admin/WcSettingsPage.php:647
+msgid ""
+"If the product on the site has a link with the product in the CRM, then when "
+"it is updated, it will be updated in Bitrix24."
+msgstr ""
+"Если у товара на сайте есть связь с товаром в CRM, то при его обновлении он "
+"обновится и в Битрикс24."
+
+#: admin/WcSettingsPage.php:661
+msgid "Checking the existence of a product, if there is already a link by ID"
+msgstr "Проверка существования товара, если уже есть связь по ID"
+
+#: admin/WcSettingsPage.php:665
+msgid ""
+"It may be useful to re-form a link if you have deleted an item from CRM."
+msgstr ""
+"Может быть полезно, чтобы сформировать связь повторно, если вы удалили товар "
+"из CRM."
+
+#: admin/WcSettingsPage.php:678
+msgid "Do not send data from `Order notes` to the deal / lead crm feed"
+msgstr "Не отправлять данные из `Заказ заметки` в crm ленту сделки/лида"
+
+#: admin/WcSettingsPage.php:682
+msgid ""
+"By default, entries that appear in block `Order notes` will be sent as "
+"comments in the deal / lead crm feed. If you do not need it, then you can "
+"disable it."
+msgstr ""
+"По умолчанию, записи которые появляются в блоке `Заказ заметки` будут "
+"отправлены в виде комментариев в crm ленте сделки/лида. Если вам это не "
+"требуется, то вы можете отключить."
+
+#: admin/WcSettingsPage.php:695
+msgid ""
+"Do not create an additional notification in Bitrix24 when creating a lead/"
+"deal"
+msgstr ""
+"Не создавать дополнительное уведомление в Битрикс24 при создании лида/сделки"
+
+#: admin/WcSettingsPage.php:704
+msgid ""
+"If you want the order status to change when a deal stage / lead status "
+"change occurs in CRM."
+msgstr ""
+"Если вы хотите, чтобы статус заказа изменялся, когда происходит изменение "
+"стадии сделки/статуса лида в CRM."
+
+#: admin/WcSettingsPage.php:711
+msgid "Outbound webhook (Application token)"
+msgstr "Исходящий вебхук (Токен приложения)"
+
+#: admin/WcSettingsPage.php:727
+msgid "Handler URL: "
+msgstr "URL обработчика: "
+
+#: admin/WcSettingsPage.php:741
+msgid "Changing the order status on the site"
+msgstr "Изменение статуса заказа на сайте"
+
+#: admin/WcSettingsPage.php:749
+msgid "Event: Lead updated (ONCRMLEADUPDATE)"
+msgstr "Событие: Обновление лида (ONCRMLEADUPDATE)"
+
+#: admin/WcSettingsPage.php:757
+msgid "Event: Deal updated (ONCRMDEALUPDATE)"
+msgstr "Событие: Обновление сделки (ONCRMDEALUPDATE)"
+
+#: admin/WcSettingsPage.php:763
+msgid "Deleting an order on the site when deleting a lead / deal"
+msgstr "Удаление заказа на сайте при удалении лида / сделки"
+
+#: admin/WcSettingsPage.php:768
+msgid "Action"
+msgstr "Действие"
+
+#: admin/WcSettingsPage.php:774
+msgid "Move to trash"
+msgstr "Переместить в корзину"
+
+#: admin/WcSettingsPage.php:777
+msgid "Delete completely"
+msgstr "Полностью удалить"
+
+#: admin/WcSettingsPage.php:786
+msgid "Event: Lead deleted (ONCRMLEADDELETE)"
+msgstr "Событие: Удаление лида (ONCRMLEADDELETE)"
+
+#: admin/WcSettingsPage.php:794
+msgid "Event: Deal deleted (ONCRMDEALDELETE)"
+msgstr "Событие: Удаление сделки (ONCRMDEALDELETE)"
+
+#: admin/WcSettingsPage.php:806
+msgid "Enable WooCommerce Memberships integration"
+msgstr "Включить интеграцию с WooCommerce Memberships"
+
+#: admin/WcSettingsPage.php:818
+msgid ""
+"When enabled, a set of tags will be added to contacts in CRM, in accordance "
+"with their plan. The tag will be added when the plan is added, and also "
+"deleted when the subscription ends or is deleted."
+msgstr ""
+"Когда включено, к контактам в CRM будет добавляться набор тегов, в "
+"соответствии с их планом. Тег будет добавлен при добавлении плана, а также "
+"удален, когда подписка кончится или будет удалена."
+
+#: admin/WcSettingsPage.php:824
+msgid "Memberships list field in contact"
+msgstr "Поле для списка подписок"
+
+#: admin/WcSettingsPage.php:863
+msgid "Only list or multiList field."
+msgstr "Только поле списка или мультисписка."
+
+#: admin/WcSettingsPage.php:875
+msgid "Save settings"
+msgstr "Сохранить"
+
+#: includes/Bitrix24EventHandler.php:239
+msgid "Lead status changed. Lead ID #"
+msgstr "Статус лида изменен. Лид ID #"
+
+#: includes/Bitrix24EventHandler.php:302
+msgid "Deal status changed. Deal ID #"
+msgstr "Статус сделки изменен. Сделка ID #"
+
+#: includes/Bitrix24EventHandler.php:367
+msgid ""
+"The order was moved to the trash when deleting a deal / lead in the CRM."
+msgstr "Заказ перемещен в корзину при удалении сделки/лида в CRM."
+
+#: includes/Bootstrap.php:88 includes/Bootstrap.php:191
+msgid "WooCommerce - Bitrix24"
+msgstr "WooCommerce - Bitrix24"
+
+#: includes/Bootstrap.php:126
+msgid "Settings"
+msgstr "Настройки"
+
+#: includes/Crm.php:77
+msgid "New lead"
+msgstr "Новый лид"
+
+#: includes/Crm.php:85 includes/Crm.php:184 includes/Crm.php:382
+msgid "from the site"
+msgstr "с сайта"
+
+#: includes/Crm.php:176 includes/Crm.php:374
+msgid "New deal"
+msgstr "Новая сделка"
+
+#: includes/CrmFields.php:160 includes/CrmFields.php:161
+msgid "Street, building"
+msgstr "Улица, дом, корпус, строение"
+
+#: includes/CrmFields.php:162 includes/CrmFields.php:163
+msgid "Suite / Apartment"
+msgstr "Квартира / офис"
+
+#: includes/CrmFields.php:164 includes/CrmFields.php:165
+msgid "City"
+msgstr "Город"
+
+#: includes/CrmFields.php:166 includes/CrmFields.php:167
+msgid "Zip"
+msgstr "Почтовый индекс"
+
+#: includes/CrmFields.php:168 includes/CrmFields.php:169
+msgid "Region"
+msgstr "Район"
+
+#: includes/CrmFields.php:170 includes/CrmFields.php:171
+msgid "State / Province"
+msgstr "Область"
+
+#: includes/CrmFields.php:172
+msgid "Country"
+msgstr "Страна"
+
+#: includes/CrmFields.php:178
+msgid "Title"
+msgstr "Название"
+
+#: includes/CrmFields.php:179
+msgid "Stage / Pipeline"
+msgstr "Стадия / Направление"
+
+#: includes/CrmFields.php:180
+msgid "Responsible user ID"
+msgstr "ID ответственного пользователя"
+
+#: includes/CrmFields.php:181
+msgid "Description"
+msgstr "Дополнительно о статусе"
+
+#: includes/CrmFields.php:182
+msgid "Tags"
+msgstr "Тэги"
+
+#: includes/CrmFields.php:183
+msgid "Deadline (use the date field type)"
+msgstr "Крайний срок (используйте с типом поля \"дата\")"
+
+#: includes/CrmFields.php:184
+msgid "Responsible person can change deadline"
+msgstr "Разрешить ответственному менять сроки задачи"
+
+#: includes/CrmFields.php:185
+msgid "Approve task when completed"
+msgstr "Принять работу после завершения задачи"
+
+#: includes/CrmFields.php:186
+msgid "Task planned time"
+msgstr "Учет времени"
+
+#: includes/OrderToBitrix24.php:592
+msgid "Added lead in CRM #"
+msgstr "Добавлен лид в CRM #"
+
+#: includes/OrderToBitrix24.php:701
+msgid "Added deal in CRM #"
+msgstr "Добавлена сделка в CRM #"
+
+#: includes/OrderToBitrix24.php:1151 includes/OrderToBitrix24.php:1165
+#: includes/OrderToBitrix24.php:1200
+msgid "Shipping"
+msgstr "Доставка"
+
+#: includes/OrderToBitrix24.php:1238
+msgid "Product"
+msgstr "Товар"
+
+#: includes/OrderToBitrix24.php:1243
+msgid "Additional info:"
+msgstr "Дополнительная информация:"
+
+#: includes/OrderToBitrix24.php:1365
+msgid "SKU"
+msgstr "Артикул"

@@ -1,0 +1,204 @@
+<?
+$xs_filter = isset($_GET['filter']) ? xs_format($_GET['filter']) : array();
+
+$setFilter = false;
+$where = [];
+
+$xs_data = (object)[
+	'action' => xs_format($_GET['action']) == 'edit' ? 'edit' : 'view'
+];
+
+// Изменяем столбцы
+
+if(isset($_POST['set_rows']) && is_array($_POST['row']))
+{
+	$ar_rows = xs_format($_POST['row']);
+	update_user_meta($big_data['current_user']->ID, 'xs_rows', $ar_rows);
+	
+	wp_redirect($big_data['current_url']);
+}
+
+// Сохраняем результат
+
+if(isset($_POST['edit_components']) && $_POST['edit_components'] == 'y' && $xs_data->action == 'edit')
+{
+	$count_result = 0;
+	$count_error = 0;
+	$post_components = xs_format($_POST['c']);
+	
+	foreach($post_components as $component_id => $component)
+	{
+		$group = get_group_components($component_id);
+		
+		if($group && isset($group->components))
+		{
+			$ar_components = $group->components;
+
+			foreach($ar_components as $db_component)
+			{
+				$db_competitors = json_decode($db_component->competitors, true);
+				$db_sale_rules = json_decode($db_component->sale_rules, true);
+				
+				$ar_competitors = [];
+				
+				for($i = 0; $i < $big_data['store_competitors_count']; $i++)
+				{
+					$ar_competitors[] = [
+						'p' => isset($component['competitors'][$i]) ? (int)$component['competitors'][$i] : (int)$db_competitors[$i]['p'],
+						'l' => isset($db_competitors[$i]) ? $db_competitors[$i]['l'] : ""
+					];
+				}
+				
+				$ar_set = [];
+				
+				if(is_row('group'))
+					$ar_set[] = "`group_id` = '".$component['group_id']."'";
+				
+				if(is_row('days'))
+					$ar_set[] = "`days` = '".$component['days']."'";
+				
+				if(is_row('forced_price'))
+					$ar_set[] = "`forced_price` = '".$component['forced_price']."'";
+				
+				if(is_row('purchase_price'))
+					$ar_set[] = "`purchase_price` = '".$component['purchase_price']."'";
+				
+				if(is_row('original_price'))
+					$ar_set[] = "`original_price` = '".$component['original_price']."'"; 
+			
+				if(is_row('sale_type') || is_row('sale_percent') || is_row('sale_min_quantity') || is_row('sale_min_days'))  
+				{
+					if(is_row('sale_type'))
+						$db_sale_rules['type'] = $component['sale_rules']['type'];
+					
+					if(is_row('sale_percent'))
+						$db_sale_rules['percent'] = $component['sale_rules']['percent'];
+					
+					if(is_row('sale_min_quantity')) 
+						$db_sale_rules['min_quantity'] = $component['sale_rules']['min_quantity'];
+					
+					if(is_row('sale_min_days'))
+						$db_sale_rules['min_days'] = $component['sale_rules']['min_days'];
+					
+					$ar_set[] = "`sale_rules` = '".json_encode($db_sale_rules, JSON_UNESCAPED_UNICODE)."'";
+				}
+				
+				// if(is_row('sort'))
+				// 	$ar_set[] = "`sort` = '".$component['sort']."'";
+				
+				// if(is_row('name'))
+				// 	$ar_set[] = "`name` = '".$component['name']."'";
+				
+				if(is_row('name_for_user'))
+					$ar_set[] = "`name_for_user` = '".$component['name_for_user']."'";
+				
+				if(is_row('category_id'))
+					$ar_set[] = "`category_id` = '".(int)$component['category_id']."'";
+				
+				if(is_row('is_set_forced_price'))
+					$ar_set[] = "`is_set_forced_price` = '".($component['is_set_forced_price'] == 'y' ? 'y' : '')."'";
+				
+				if(is_row('color'))
+					$ar_set[] = "`color` = '".$component['color']."'";
+				
+				if(is_row('show_in_product'))
+					$ar_set[] = "`show_in_product` = '".($component['show_in_product'] == 'y' ? 'y' : '')."'";
+				
+				if(is_row('hide_quantity_in_product'))
+					$ar_set[] = "`hide_quantity_in_product` = '".($component['hide_quantity_in_product'] == 'y' ? 'y' : '')."'";
+				
+				if(is_row('is_fresh_delivery'))
+					$ar_set[] = "`is_fresh_delivery` = '".($component['is_fresh_delivery'] == 'y' ? 'y' : '')."'";
+				
+				if(is_row('favorite'))
+					$ar_set[] = "`favorite` = '".($component['favorite'] == 'y' ? 'y' : '')."'";
+				
+				if(is_row('ms_ids'))
+				{
+					$component['ms_ids'] = sort_ms_ids($component['ms_ids']);
+					$ar_set[] = "`ms_ids` = '".$component['ms_ids']."'";
+				
+					if(empty($ms_ids))
+						$ar_set[] = "`ms_components` = ''";
+				}
+				
+				if(is_row('ms_is_update_price'))
+					$ar_set[] = "`ms_is_update_price` = '".($component['ms_is_update_price'] == 'y' ? 'y' : '')."'";
+				
+				if(is_row('ms_is_update_days'))
+					$ar_set[] = "`ms_is_update_days` = '".($component['ms_is_update_days'] == 'y' ? 'y' : '')."'";
+				
+				if(is_row('ms_quantity_for_days'))
+					$ar_set[] = "`ms_quantity_for_days` = '".(int)$component['ms_quantity_for_days']."'";
+				
+				if(is_row('ms_percent_outstock'))
+					$ar_set[] = "`ms_percent_outstock` = '".(float)$component['ms_percent_outstock']."'";
+				
+				if(is_row('ms_is_update_retail_price'))
+					$ar_set[] = "`ms_is_update_retail_price` = '".($component['ms_is_update_retail_price'] == 'y' ? 'y' : '')."'";
+				
+				if(is_row('competitors'))
+					$ar_set[] = "`competitors` = '".json_encode($ar_competitors, JSON_UNESCAPED_UNICODE)."'";
+				
+				if(count($ar_set))
+				{
+					$wpdb->get_results("
+						UPDATE 
+							`xsite_store_components`
+						SET
+							".implode(", ", $ar_set)."
+						WHERE
+							`id` = '".$db_component->id."'
+					");
+				}
+				
+				$count_result++;
+			}
+		}
+	}
+	
+	$xs_good[] = "Все цены успешно обновлены.";
+
+
+	$is_send_telegram = isset($_POST['is_send_telegram']) && $_POST['is_send_telegram'] == 'y';
+	$is_send_bitrix = isset($_POST['is_send_bitrix']) && $_POST['is_send_bitrix'] == 'y';
+	
+	update_price_component(0, false, $is_send_telegram, $is_send_bitrix);
+}
+
+if(isset($xs_filter['search']) && !empty($xs_filter['search'])) // фильтр "Поиск"
+{
+	$where[] = "(
+		c.`name` LIKE '%".$xs_filter['search']."%' OR
+		c.`id` = '".$xs_filter['search']."'
+	)";
+	$setFilter = true;
+}
+
+if(count($where) > 0)
+	$where = ' WHERE '.implode(' AND ', $where);
+else
+	$where = '';
+
+$xs_query = "
+	SELECT 
+		c.*
+	FROM `xsite_store_groups` AS c
+	".$where;
+
+$xs_data->result = $wpdb->get_results($xs_query.get_order_limit('c.sort', 'asc', false));
+
+foreach($xs_data->result as $k => $v)
+	$xs_data->result[$k]->sale_rules = json_decode($v->sale_rules, true);
+
+
+$big_data['category_list'] = get_store_categories();
+
+$big_data['category_list_all'] = [];
+
+foreach($big_data['category_list'] as $v)
+	$big_data['category_list_all'][$v->id] = $v->fullname;
+
+asort($big_data['category_list_all']);
+
+$big_data['category_list_all'][0] = "- верхний уровень -";

@@ -1,0 +1,123 @@
+<script> xs_active_menu("admin.php?page=store&section=group") </script>
+<style>#screen-meta ~ .notice{display:none!important}</style>
+<div class="store_report_page">
+    <div class="store_report_page__fix"><?
+
+        xs_get_message();
+
+        ?><form class="xs_flex xs_top xs_wrap xs_filter only_search" id="filter" method="get" action="">
+            <div class="dates_block">
+                <label>
+                    <input type="text" form="filter" name="filter[search]" value="<?=esc_attr(isset($xs_filter['search']) ? $xs_filter['search'] : '') ?>" placeholder="Поиск" />
+                </label>
+                <label class="xs_submit">
+                    <input type="submit" form="filter" value="Искать" class="button-primary" />
+                </label><?
+
+                if ($setFilter) {
+                    ?><label class="xs_submit">
+                        <a href="/wp-admin/admin.php?page=<?=esc_attr($_GET['page']) ?>&section=<?=esc_attr($_GET['section']) ?>">× Сбросить</a>
+                    </label><?
+                }
+
+                ?><input type="hidden" form="filter" name="page"    value="<?=esc_attr($_GET['page']) ?>" />
+                <input type="hidden" form="filter" name="section" value="<?=esc_attr($_GET['section']) ?>" />
+            </div>
+            <div class="xs_filter__buttons">
+                <div data-modal="group-add" class="button">Создать группу</div>
+                <a href="/moysklad/update_all.php?is_admin=y" target="_blank" class="button">Обновить цены с МС</a>
+            </div>
+        </form>
+    </div>
+
+    <form action="" method="post">
+        <div class="store_table__container">
+            <table class="wp-list-table store_table widefat striped xs_data_table">
+                <thead>
+                    <tr>
+                        <th>Название</th>
+                        <th style="text-align:center">Компонентов</th>
+                        <th>Себес (avg)</th>
+                        <th>Дни (avg)</th>
+                        <th>Остаток (avg)</th>
+                        <th>П.цена</th>
+                        <th>% скидки</th>
+                    </tr>
+                </thead>
+                <tbody><?
+
+                if ($xs_data && count($xs_data)) {
+                    foreach ($xs_data as $v) {
+
+                        // Цвет ячейки Дни
+                        $days_bg = '';
+                        $days_val = (float)$v->avg_days;
+                        if     ($days_val <= 1)  $days_bg = '#a5d6a7';
+                        elseif ($days_val <= 3)  $days_bg = '#c8e6c9';
+                        elseif ($days_val <= 7)  $days_bg = '#fff9c4';
+                        elseif ($days_val <= 14) $days_bg = '#ffcc80';
+                        else                      $days_bg = '#ef9a9a';
+
+                        // Цвет ячейки Остаток
+                        $qty_class = (int)$v->avg_quantity > 0 ? 'cell--stock-ok' : 'cell--stock-zero';
+
+                        // П.цена: показываем только если у всех компонентов одинаковое значение > 0
+                        $fp_value = ($v->min_fp == $v->max_fp && $v->min_fp > 0) ? $v->min_fp : '';
+
+                        // % скидки из первого компонента
+                        $sale_percent_val = isset($v->sample_sale_rules['percent']) && $v->sample_sale_rules['percent'] > 0
+                            ? (int)$v->sample_sale_rules['percent']
+                            : '';
+
+                        ?><tr>
+                            <td>
+                                <a data-modal="group-detail" data-id="<?=(int)$v->id ?>" href="#"><?=esc_html($v->name) ?></a>
+                            </td>
+                            <td style="text-align:center"><?=(int)$v->cnt ?></td>
+                            <td><?=$v->avg_original_price > 0 ? number_format((int)$v->avg_original_price, 0, ',', ' ') . ' ₽' : '—' ?></td>
+                            <td style="background:<?=esc_attr($days_bg) ?>"><?=$days_val > 0 ? $days_val : '—' ?></td>
+                            <td class="<?=esc_attr($qty_class) ?>"><?=$v->avg_quantity > 0 ? (int)$v->avg_quantity : '—' ?></td>
+                            <td>
+                                <input type="number" name="g[<?=(int)$v->id ?>][forced_price]"
+                                    class="store_input_forced_price"
+                                    value="<?=esc_attr($fp_value) ?>"
+                                    min="0" step="1" style="width:80px"
+                                    placeholder="без изм." />
+                            </td>
+                            <td>
+                                <input type="number" name="g[<?=(int)$v->id ?>][sale_percent]"
+                                    class="store_input_sale_percent"
+                                    value="<?=esc_attr($sale_percent_val) ?>"
+                                    min="0" max="100" step="1" style="width:60px"
+                                    placeholder="без изм." />
+                                <span class="store_cell_clear" title="Очистить" style="cursor:pointer;color:#999;margin-left:3px">×</span>
+                            </td>
+                        </tr><?
+                    }
+                } else {
+                    ?><tr><td colspan="7">Группы не найдены.</td></tr><?
+                }
+
+                ?></tbody>
+            </table>
+        </div>
+
+        <div class="store_table_edit">
+            <input type="submit" value="Сохранить" class="button-primary">
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+            <label>
+                <input type="checkbox" value="y" name="is_send_telegram"> Отправить в TG
+            </label>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+            <label>
+                <input type="checkbox" value="y" name="is_send_bitrix"> Отправить в Битрикс24
+            </label>
+        </div>
+        <input type="hidden" value="y" name="edit_groups" />
+    </form>
+</div>
+<script>
+jQuery(document).on('click', '.store_cell_clear', function() {
+    jQuery(this).prev('input').val('');
+});
+</script>
