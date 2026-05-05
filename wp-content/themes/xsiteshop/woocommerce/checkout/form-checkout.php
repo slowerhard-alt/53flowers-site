@@ -211,7 +211,7 @@ if(xs_get_option('xs_deactive_checkout'))
 											else
 											{
 												jQuery('.block_is_recipient').addClass('hide')
-												jQuery('.block_is_recipient input[type=text]').val('Нет')
+												jQuery('.block_is_recipient input[type=text]').val('')
 											}
 											
 										">
@@ -225,16 +225,16 @@ if(xs_get_option('xs_deactive_checkout'))
 										'required'    	=> false,
 										'label'         => 'Имя получателя',
 										'class'			=> ['validate-phone'],
-										'placeholder'	=> 'Напишите «Нет», если получаете Вы',
-									], "Нет" /* $checkout->get_value("_recipient_name") */ );
+										'placeholder'	=> '',
+									], $checkout->get_value("_recipient_name") );
 									
 									woocommerce_form_field("_recipient_phone", [
 										'type' 			=> "tel",
-										'placeholder'	=> 'Напишите «Нет», если получаете Вы',
+										'placeholder'	=> '',
 										'class'			=> ['validate-phone'],
 										'required'    	=> false,
 										'label'         => 'Телефон получателя',
-									], "Нет" /* $checkout->get_value("_recipient_phone") */ );
+									], $checkout->get_value("_recipient_phone") );
 									
 								?></div><?
 						
@@ -251,7 +251,7 @@ if(xs_get_option('xs_deactive_checkout'))
 									'required'    	=> false,
 									'class'			=> ['xs_margin'], 
 									'label'         => 'Время доставки',
-									'placeholder'	=> 'Напишите «Нет» и мы уточним время у получателя',
+									'placeholder'	=> 'например: до 12:00, с 14:00 до 18:00',
 								], $checkout->get_value("_delivery_time"));
 							}
 						}
